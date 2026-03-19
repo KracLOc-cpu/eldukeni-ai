@@ -1,0 +1,1382 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bazaar AI — Генератор карточек</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800&family=Golos+Text:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --surface2: #1c1c28;
+    --border: #2a2a3a;
+    --accent: #00e5a0;
+    --accent2: #7c5cfc;
+    --text: #f0f0f8;
+    --muted: #6b6b8a;
+    --danger: #ff4d6d;
+    --warning: #ffb347;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Golos Text', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated background */
+  body::before {
+    content: '';
+    position: fixed;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(ellipse at 20% 20%, rgba(0,229,160,0.04) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(124,92,252,0.04) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+
+  /* Header */
+  header {
+    padding: 24px 0;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .logo {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+
+  .logo span { color: var(--accent); }
+
+  .status-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 6px 14px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* Steps nav */
+  .steps {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 32px 0 40px;
+  }
+
+  .step {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    padding: 10px 16px;
+    border-radius: 12px;
+    transition: all 0.2s;
+    flex: 1;
+    position: relative;
+  }
+
+  .step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    right: -1px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .step.active { background: var(--surface2); }
+  .step.done .step-num { background: var(--accent); color: #000; }
+
+  .step-num {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Unbounded', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    flex-shrink: 0;
+    transition: all 0.3s;
+  }
+
+  .step.active .step-num {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+    box-shadow: 0 0 16px rgba(0,229,160,0.3);
+  }
+
+  .step-label {
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  .step.active .step-label { color: var(--text); }
+
+  /* Panels */
+  .panel {
+    display: none;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .panel.active { display: block; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Section title */
+  .section-title {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+  }
+
+  .section-sub {
+    color: var(--muted);
+    font-size: 14px;
+    margin-bottom: 28px;
+  }
+
+  /* Form */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .form-group.full { grid-column: 1 / -1; }
+
+  label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  input, select, textarea {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    color: var(--text);
+    font-family: 'Golos Text', sans-serif;
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    width: 100%;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0,229,160,0.1);
+  }
+
+  select option { background: var(--surface); }
+
+  /* Seller card */
+  .seller-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .seller-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .seller-card.selected { border-color: var(--accent); background: rgba(0,229,160,0.05); }
+
+  .seller-avatar {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Unbounded', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+  }
+
+  .seller-info h3 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .seller-info p { font-size: 13px; color: var(--muted); }
+
+  .seller-id {
+    margin-left: auto;
+    font-family: 'Unbounded', sans-serif;
+    font-size: 11px;
+    color: var(--accent);
+    background: rgba(0,229,160,0.1);
+    padding: 4px 10px;
+    border-radius: 100px;
+  }
+
+  /* Upload zone */
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: 20px;
+    padding: 60px 40px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: var(--surface);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .upload-zone:hover, .upload-zone.drag-over {
+    border-color: var(--accent);
+    background: rgba(0,229,160,0.03);
+  }
+
+  .upload-zone::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(0,229,160,0.05) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .upload-zone:hover::before { opacity: 1; }
+
+  .upload-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    display: block;
+  }
+
+  .upload-title {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .upload-sub { color: var(--muted); font-size: 14px; margin-bottom: 20px; }
+
+  .upload-input { display: none; }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-family: 'Golos Text', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    text-decoration: none;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+    box-shadow: 0 4px 20px rgba(0,229,160,0.25);
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 28px rgba(0,229,160,0.35);
+  }
+
+  .btn-secondary {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  .btn-secondary:hover { border-color: var(--accent); }
+
+  .btn-danger { background: rgba(255,77,109,0.15); color: var(--danger); border: 1px solid rgba(255,77,109,0.3); }
+
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+
+
+  .style-selector { margin: 20px 0 16px; }
+  .style-label { font-size: 13px; color: #666; margin-bottom: 10px; font-weight: 500; }
+  .style-options { display: flex; gap: 12px; }
+  .style-option {
+    flex: 1; border: 2px solid #e0e0e0; border-radius: 12px; padding: 14px 12px;
+    cursor: pointer; text-align: center; transition: all 0.2s; background: #fafafa;
+  }
+  .style-option:hover { border-color: #00C27C; background: #f0fff8; }
+  .style-option.active { border-color: #00C27C; background: #e8fff5; }
+  .style-icon { font-size: 24px; margin-bottom: 6px; }
+  .style-name { font-weight: 700; font-size: 14px; color: #1a1a2e; margin-bottom: 2px; }
+  .style-desc { font-size: 11px; color: #888; margin-bottom: 4px; }
+  .style-price { font-size: 11px; color: #00C27C; font-weight: 600; }
+  .btn-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+    align-items: center;
+  }
+
+  /* File preview grid */
+  .files-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 12px;
+    margin-top: 20px;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+
+  .file-thumb {
+    aspect-ratio: 1;
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    position: relative;
+  }
+
+  .file-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+  .file-remove-btn {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: rgba(255,77,109,0.85);
+    color: #fff;
+    border: none;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .file-thumb:hover .file-remove-btn { opacity: 1; }
+
+  .file-thumb-name {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0,0,0,0.7);
+    padding: 4px 6px;
+    font-size: 10px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .files-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0,229,160,0.1);
+    color: var(--accent);
+    padding: 6px 14px;
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-top: 12px;
+  }
+
+  /* Progress */
+  .progress-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 32px;
+    margin-bottom: 24px;
+  }
+
+  .progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  .progress-title { font-family: 'Unbounded', sans-serif; font-size: 15px; font-weight: 600; }
+
+  .progress-percent {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--accent);
+  }
+
+  .progress-bar-bg {
+    background: var(--surface2);
+    border-radius: 100px;
+    height: 8px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 100px;
+    transition: width 0.4s ease;
+    position: relative;
+  }
+
+  .progress-bar-fill::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 40px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3));
+    animation: shimmer 1.5s infinite;
+  }
+
+  @keyframes shimmer {
+    0% { opacity: 0; }
+    50% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  .progress-stats {
+    display: flex;
+    gap: 24px;
+  }
+
+  .progress-stat { font-size: 13px; color: var(--muted); }
+  .progress-stat span { color: var(--text); font-weight: 600; }
+
+  /* Processing steps */
+  .processing-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 20px;
+  }
+
+  .proc-step {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    background: var(--surface2);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    transition: all 0.3s;
+  }
+
+  .proc-step.active { border-color: var(--accent); background: rgba(0,229,160,0.05); }
+  .proc-step.done { border-color: rgba(0,229,160,0.3); }
+
+  .proc-step-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+    transition: all 0.3s;
+  }
+
+  .proc-step.active .proc-step-icon { background: var(--accent); }
+  .proc-step.done .proc-step-icon { background: rgba(0,229,160,0.2); }
+
+  .proc-step-text { font-size: 14px; font-weight: 500; }
+  .proc-step-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  .proc-step-status {
+    margin-left: auto;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .proc-step.active .proc-step-status { color: var(--accent); }
+  .proc-step.done .proc-step-status { color: rgba(0,229,160,0.6); }
+
+  /* Results grid */
+  .results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+    margin-top: 20px;
+  }
+
+  .result-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+
+  .result-card:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(0,0,0,0.3); }
+  .result-card.approved { border-color: var(--accent); }
+  .result-card.rejected { border-color: var(--danger); opacity: 0.5; }
+
+  .result-card-img {
+    aspect-ratio: 1;
+    background: #fff;
+    position: relative;
+    overflow: hidden;
+    border-radius: 12px 12px 0 0;
+  }
+
+  .result-card-img img { width: 100%; height: 100%; object-fit: cover; padding: 0; }
+
+  .lifestyle-badge {
+    position: absolute; top: 8px; left: 8px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white; font-size: 10px; font-weight: 700;
+    padding: 3px 8px; border-radius: 20px;
+  }
+  .result-card-badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: var(--accent);
+    color: #000;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 100px;
+    font-family: 'Unbounded', sans-serif;
+  }
+
+  .result-card-body { padding: 12px; }
+  .result-card-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; line-height: 1.4; }
+  .result-card-desc { font-size: 11px; color: var(--muted); line-height: 1.4; margin-bottom: 10px; }
+
+  .result-card-actions { display: flex; gap: 6px; }
+
+  .btn-sm {
+    flex: 1;
+    padding: 7px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    font-family: 'Golos Text', sans-serif;
+  }
+
+  .btn-approve { background: rgba(0,229,160,0.15); color: var(--accent); }
+  .btn-approve:hover { background: rgba(0,229,160,0.25); }
+  .btn-reject { background: rgba(255,77,109,0.1); color: var(--danger); }
+  .btn-reject:hover { background: rgba(255,77,109,0.2); }
+
+  /* Stats row */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+  }
+
+  .stat-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+
+  .stat-value {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 26px;
+    font-weight: 700;
+  }
+
+  .stat-value.green { color: var(--accent); }
+  .stat-value.purple { color: var(--accent2); }
+  .stat-value.red { color: var(--danger); }
+
+  /* Alert */
+  .alert {
+    padding: 14px 18px;
+    border-radius: 12px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .alert-info { background: rgba(124,92,252,0.1); border: 1px solid rgba(124,92,252,0.3); color: #a78bfa; }
+  .alert-success { background: rgba(0,229,160,0.1); border: 1px solid rgba(0,229,160,0.3); color: var(--accent); }
+
+  /* Seller search */
+  .seller-search {
+    position: relative;
+    margin-bottom: 20px;
+  }
+
+  .seller-search input { padding-left: 42px; }
+
+  .seller-search-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    font-size: 16px;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--surface); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 20px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 1000;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    max-width: 320px;
+  }
+
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { border-color: rgba(0,229,160,0.4); }
+  .toast.error { border-color: rgba(255,77,109,0.4); }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div class="logo">
+      <div class="logo-icon">🏪</div>
+      Bazaar <span>AI</span>
+    </div>
+    <div class="status-badge">
+      <div class="status-dot"></div>
+      Система активна
+    </div>
+  </header>
+
+  <!-- Steps -->
+  <div class="steps">
+    <div class="step active" id="step1" onclick="goStep(1)">
+      <div class="step-num">1</div>
+      <div class="step-label">Продавец</div>
+    </div>
+    <div class="step" id="step2" onclick="goStep(2)">
+      <div class="step-num">2</div>
+      <div class="step-label">Загрузка фото</div>
+    </div>
+    <div class="step" id="step3" onclick="goStep(3)">
+      <div class="step-num">3</div>
+      <div class="step-label">Обработка</div>
+    </div>
+    <div class="step" id="step4" onclick="goStep(4)">
+      <div class="step-num">4</div>
+      <div class="step-label">Результат</div>
+    </div>
+  </div>
+
+  <!-- PANEL 1: Выбор/создание продавца -->
+  <div class="panel active" id="panel1">
+    <div class="section-title">Выберите продавца</div>
+    <div class="section-sub">Выберите существующего продавца или добавьте нового</div>
+
+    <div class="seller-search">
+      <span class="seller-search-icon">🔍</span>
+      <input type="text" id="sellerSearch" placeholder="Поиск по имени или ID..." oninput="filterSellers(this.value)">
+    </div>
+
+    <div id="sellersList"></div>
+
+    <div style="margin-top:20px; padding-top:20px; border-top:1px solid var(--border);">
+      <div class="section-title" style="font-size:16px; margin-bottom:16px;">+ Новый продавец</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Название магазина (RU)</label>
+          <input type="text" id="sellerName" placeholder="Магазин Айгерим">
+        </div>
+        <div class="form-group">
+          <label>Название (KZ)</label>
+          <input type="text" id="sellerNameKz" placeholder="Айгерім дүкені">
+        </div>
+        <div class="form-group">
+          <label>Ряд</label>
+          <input type="text" id="sellerRow" placeholder="5">
+        </div>
+        <div class="form-group">
+          <label>Место</label>
+          <input type="text" id="sellerPlace" placeholder="12">
+        </div>
+        <div class="form-group full">
+          <label>Категория товаров</label>
+          <select id="sellerCategory">
+            <option value="">Выберите категорию</option>
+            <option>Одежда и обувь</option>
+            <option>Электроника</option>
+            <option>Продукты питания</option>
+            <option>Косметика и парфюмерия</option>
+            <option>Товары для дома</option>
+            <option>Игрушки и детские товары</option>
+            <option>Спорт и отдых</option>
+            <option>Ювелирные украшения</option>
+            <option>Прочее</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="addSeller()">+ Добавить продавца</button>
+    </div>
+  </div>
+
+  <!-- PANEL 2: Загрузка фото -->
+  <div class="panel" id="panel2">
+    <div id="selectedSellerInfo"></div>
+
+    <div class="section-title">Загрузите фотографии</div>
+    <div class="section-sub">Загрузите от 1 до 1000+ фотографий товаров одной пачкой</div>
+
+    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()"
+         ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropFiles(event)">
+      <span class="upload-icon">📦</span>
+      <div class="upload-title">Перетащите фото сюда</div>
+      <div class="upload-sub">или нажмите для выбора файлов</div>
+      <button class="btn btn-secondary" onclick="event.stopPropagation(); document.getElementById('fileInput').click()">
+        Выбрать файлы
+      </button>
+      <input type="file" id="fileInput" class="upload-input" multiple accept="image/*" onchange="handleFiles(this.files)">
+    </div>
+
+    <div id="filesPreview" style="display:none;">
+      <div style="display:flex; align-items:center; gap:12px; margin-top:12px;">
+        <div class="files-count" id="filesCount">0 файлов выбрано</div>
+        <button class="btn btn-danger btn-sm" onclick="clearFiles()" style="padding:6px 14px; border-radius:100px; font-size:12px;">Очистить все</button>
+      </div>
+      <div class="files-grid" id="filesGrid"></div>
+    </div>
+
+    <!-- Выбор стиля карточки -->
+    <div class="style-selector">
+      <div class="style-label">Стиль карточки:</div>
+      <div class="style-options">
+        <div class="style-option active" id="styleSimple" onclick="selectStyle('simple')">
+          <div class="style-icon">🤍</div>
+          <div class="style-name">Простой</div>
+          <div class="style-desc">Белый фон + тень</div>
+          <div class="style-price">~$0.06 / шт</div>
+        </div>
+        <div class="style-option" id="styleLifestyle" onclick="selectStyle('lifestyle')">
+          <div class="style-icon">✨</div>
+          <div class="style-name">Lifestyle ИИ</div>
+          <div class="style-desc">Красивый фон по категории</div>
+          <div class="style-price">~$0.14 / шт</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goStep(1)">← Назад</button>
+      <button class="btn btn-primary" id="startBtn" onclick="startProcessing()" disabled>
+        🚀 Запустить обработку
+      </button>
+    </div>
+  </div>
+
+  <!-- PANEL 3: Обработка -->
+  <div class="panel" id="panel3">
+    <div class="section-title">Обработка карточек</div>
+    <div class="section-sub">ИИ анализирует фотографии и создаёт карточки товаров</div>
+
+    <div class="progress-wrap">
+      <div class="progress-header">
+        <div class="progress-title">Прогресс обработки</div>
+        <div class="progress-percent" id="progressPercent">0%</div>
+      </div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progressBar" style="width:0%"></div>
+      </div>
+      <div class="progress-stats">
+        <div class="progress-stat">Обработано: <span id="statDone">0</span></div>
+        <div class="progress-stat">Всего: <span id="statTotal">0</span></div>
+        <div class="progress-stat">Ошибок: <span id="statErrors">0</span></div>
+        <div class="progress-stat">Осталось: <span id="statTime">—</span></div>
+      </div>
+    </div>
+
+    <div class="processing-steps">
+      <div class="proc-step" id="proc1">
+        <div class="proc-step-icon">🗑️</div>
+        <div>
+          <div class="proc-step-text">Удаление фона</div>
+          <div class="proc-step-sub">RMBG обрабатывает изображения</div>
+        </div>
+        <div class="proc-step-status" id="proc1status">Ожидание</div>
+      </div>
+      <div class="proc-step" id="proc2">
+        <div class="proc-step-icon">🎨</div>
+        <div>
+          <div class="proc-step-text">Создание карточки</div>
+          <div class="proc-step-sub">Белый фон, центровка, брендинг</div>
+        </div>
+        <div class="proc-step-status" id="proc2status">Ожидание</div>
+      </div>
+      <div class="proc-step" id="proc3">
+        <div class="proc-step-icon">🤖</div>
+        <div>
+          <div class="proc-step-text">Claude Vision — анализ</div>
+          <div class="proc-step-sub">Генерация названия и описания RU + KZ</div>
+        </div>
+        <div class="proc-step-status" id="proc3status">Ожидание</div>
+      </div>
+      <div class="proc-step" id="proc4">
+        <div class="proc-step-icon">💾</div>
+        <div>
+          <div class="proc-step-text">Сохранение в базу</div>
+          <div class="proc-step-sub">Supabase Storage + Database</div>
+        </div>
+        <div class="proc-step-status" id="proc4status">Ожидание</div>
+      </div>
+    </div>
+
+    <div class="alert alert-info" style="margin-top:24px;">
+      ℹ️ Не закрывайте страницу во время обработки. При большом объёме — можно свернуть вкладку.
+    </div>
+  </div>
+
+  <!-- PANEL 4: Результат -->
+  <div class="panel" id="panel4">
+    <div class="section-title">Готовые карточки</div>
+    <div class="section-sub">Проверьте и одобрите карточки для публикации</div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Всего создано</div>
+        <div class="stat-value" id="totalCards">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Одобрено</div>
+        <div class="stat-value green" id="approvedCards">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">На проверке</div>
+        <div class="stat-value purple" id="pendingCards">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Отклонено</div>
+        <div class="stat-value red" id="rejectedCards">0</div>
+      </div>
+    </div>
+
+    <div class="btn-row" style="margin-top:0; margin-bottom:20px;">
+      <button class="btn btn-primary" onclick="approveAll()">✅ Одобрить все</button>
+      <button class="btn btn-secondary" onclick="downloadAll()">⬇️ Скачать ZIP</button>
+      <button class="btn btn-secondary" onclick="goStep(1)" style="margin-left:auto;">+ Новая партия</button>
+    </div>
+
+    <div class="results-grid" id="resultsGrid"></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+  // ==================== STATE ====================
+  const SUPABASE_URL = 'https://plgoehremyeeueweoxrt.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsZ29laHJlbXllZXVld2VveHJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNDQyNDcsImV4cCI6MjA4ODgyMDI0N30.yeMPdZyQBLnYZa6crKQ5tVSMHrYN7uvhITx5nXnrndI';
+  const EDGE_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/ai-card-generator`;
+
+  let currentStep = 1;
+  let selectedSeller = null;
+  let uploadedFiles = [];
+  let selectedCardStyle = "simple";
+  let processedCards = [];
+  let sellers = [];
+
+  // Demo sellers data
+  const demoSellers = [
+    { id: 'S0001', name: 'Гулям', name_kz: 'Ғұлям', row_number: '3', place_number: '7', category: 'Одежда и обувь' },
+    { id: 'S0002', name: 'El Dukeni', name_kz: 'Эл Дүкені', row_number: '5', place_number: '12', category: 'Косметика и парфюмерия' },
+    { id: 'S0003', name: 'Кудайбергенов', name_kz: 'Құдайбергенов', row_number: '1', place_number: '3', category: 'Электроника' },
+  ];
+
+  // Convert File to base64
+  // Сжимаем фото перед отправкой — экономим на токенах Gemini
+  function fileToBase64(file, maxSize = 1024) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let w = img.width, h = img.height;
+          // Уменьшаем до maxSize px по длинной стороне
+          if (w > maxSize || h > maxSize) {
+            if (w > h) { h = Math.round(h * maxSize / w); w = maxSize; }
+            else { w = Math.round(w * maxSize / h); h = maxSize; }
+          }
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          // Сжимаем в JPEG quality 0.85
+          const compressed = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+          console.log();
+          resolve(compressed);
+        };
+        img.onerror = reject;
+        img.src = e.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function selectStyle(style) {
+    selectedCardStyle = style;
+    document.getElementById('styleSimple').classList.toggle('active', style === 'simple');
+    document.getElementById('styleLifestyle').classList.toggle('active', style === 'lifestyle');
+  }
+
+  // Call real Edge Function
+  async function processFileWithAI(file, seller) {
+    const base64 = await fileToBase64(file);
+    const mime = file.type || 'image/jpeg';
+
+    const res = await fetch(EDGE_FUNCTION_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'apikey': SUPABASE_KEY,
+      },
+      body: JSON.stringify({
+        photo_base64: base64,
+        photo_mime: mime,
+        seller_id: seller.id,
+        seller_name: seller.name,
+        card_style: selectedCardStyle,
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Ошибка сервера');
+    }
+
+    return await res.json();
+  }
+
+  // ==================== INIT ====================
+  function init() {
+    sellers = [...demoSellers];
+    renderSellers(sellers);
+  }
+
+  // ==================== NAVIGATION ====================
+  function goStep(n) {
+    if (n === 2 && !selectedSeller) { showToast('Сначала выберите продавца', 'error'); return; }
+    if (n === 3 && uploadedFiles.length === 0) { showToast('Сначала загрузите фотографии', 'error'); return; }
+
+    currentStep = n;
+    document.querySelectorAll('.step').forEach((s, i) => {
+      s.classList.toggle('active', i + 1 === n);
+      s.classList.toggle('done', i + 1 < n);
+    });
+    document.querySelectorAll('.panel').forEach((p, i) => {
+      p.classList.toggle('active', i + 1 === n);
+    });
+  }
+
+  // ==================== SELLERS ====================
+  function renderSellers(list) {
+    const el = document.getElementById('sellersList');
+    if (list.length === 0) {
+      el.innerHTML = '<div style="color:var(--muted);font-size:14px;padding:16px 0;">Продавцы не найдены</div>';
+      return;
+    }
+    el.innerHTML = list.map(s => `
+      <div class="seller-card ${selectedSeller?.id === s.id ? 'selected' : ''}" onclick="selectSeller('${s.id}')">
+        <div class="seller-avatar">${s.name.charAt(0)}</div>
+        <div class="seller-info">
+          <h3>${s.name}</h3>
+          <p>Ряд ${s.row_number}, Место ${s.place_number} · ${s.category}</p>
+        </div>
+        <div class="seller-id">${s.id}</div>
+      </div>
+    `).join('');
+  }
+
+  function filterSellers(q) {
+    const filtered = sellers.filter(s =>
+      s.name.toLowerCase().includes(q.toLowerCase()) || s.id.includes(q.toUpperCase())
+    );
+    renderSellers(filtered);
+  }
+
+  function selectSeller(id) {
+    selectedSeller = sellers.find(s => s.id === id);
+    renderSellers(sellers);
+    showToast(`Выбран: ${selectedSeller.name}`, 'success');
+    setTimeout(() => goStep(2), 600);
+  }
+
+  function addSeller() {
+    const name = document.getElementById('sellerName').value.trim();
+    if (!name) { showToast('Введите название магазина', 'error'); return; }
+
+    const newId = 'S' + String(sellers.length + 1).padStart(4, '0');
+    const seller = {
+      id: newId,
+      name,
+      name_kz: document.getElementById('sellerNameKz').value,
+      row_number: document.getElementById('sellerRow').value || '—',
+      place_number: document.getElementById('sellerPlace').value || '—',
+      category: document.getElementById('sellerCategory').value || 'Прочее'
+    };
+    sellers.push(seller);
+    renderSellers(sellers);
+    showToast(`Продавец ${name} добавлен (${newId})`, 'success');
+
+    // Clear form
+    ['sellerName','sellerNameKz','sellerRow','sellerPlace'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('sellerCategory').value = '';
+
+    selectSeller(newId);
+  }
+
+  // ==================== FILE UPLOAD ====================
+  function handleFiles(files) {
+    uploadedFiles = uploadedFiles.concat(Array.from(files));
+    renderFilePreviews();
+  }
+
+  function removeFile(index) {
+    uploadedFiles.splice(index, 1);
+    renderFilePreviews();
+  }
+
+  function clearFiles() {
+    uploadedFiles = [];
+    renderFilePreviews();
+  }
+
+  function renderFilePreviews() {
+    const preview = document.getElementById('filesPreview');
+    const grid = document.getElementById('filesGrid');
+    const count = document.getElementById('filesCount');
+    const btn = document.getElementById('startBtn');
+
+    if (uploadedFiles.length === 0) { preview.style.display = 'none'; btn.disabled = true; return; }
+
+    preview.style.display = 'block';
+    btn.disabled = false;
+    count.innerHTML = `📸 ${uploadedFiles.length} файлов выбрано`;
+
+    const show = uploadedFiles.slice(0, 20);
+    grid.innerHTML = show.map((f, i) => {
+      const url = URL.createObjectURL(f);
+      return `<div class="file-thumb">
+        <img src="${url}">
+        <div class="file-thumb-name">${f.name}</div>
+        <button class="file-remove-btn" onclick="event.stopPropagation(); removeFile(${i})" title="Удалить">✕</button>
+      </div>`;
+    }).join('');
+
+    if (uploadedFiles.length > 20) {
+      grid.innerHTML += `<div class="file-thumb" style="display:flex;align-items:center;justify-content:center;font-family:'Unbounded',sans-serif;font-size:14px;color:var(--accent);">+${uploadedFiles.length - 20}</div>`;
+    }
+
+    // Update selected seller info
+    const info = document.getElementById('selectedSellerInfo');
+    if (selectedSeller) {
+      info.innerHTML = `<div class="alert alert-success" style="margin-bottom:20px;">
+        🏪 Продавец: <strong>${selectedSeller.name}</strong> · ${selectedSeller.id} · Ряд ${selectedSeller.row_number}, Место ${selectedSeller.place_number}
+      </div>`;
+    }
+  }
+
+  function dragOver(e) {
+    e.preventDefault();
+    document.getElementById('uploadZone').classList.add('drag-over');
+  }
+
+  function dragLeave(e) {
+    document.getElementById('uploadZone').classList.remove('drag-over');
+  }
+
+  function dropFiles(e) {
+    e.preventDefault();
+    document.getElementById('uploadZone').classList.remove('drag-over');
+    handleFiles(e.dataTransfer.files);
+  }
+
+  // ==================== PROCESSING ====================
+  async function startProcessing() {
+    goStep(3);
+
+    const total = uploadedFiles.length;
+    document.getElementById('statTotal').textContent = total;
+
+    let done = 0;
+    let errors = 0;
+    processedCards = [];
+
+    const steps = ['proc1', 'proc2', 'proc3', 'proc4'];
+    const statuses = ['proc1status', 'proc2status', 'proc3status', 'proc4status'];
+
+    // Animate steps sequentially
+    for (let si = 0; si < steps.length; si++) {
+      document.getElementById(steps[si]).classList.add('active');
+      document.getElementById(statuses[si]).textContent = 'Обработка...';
+      await delay(600);
+    }
+
+    // Process files — по одному чтобы не было race condition
+    for (let i = 0; i < uploadedFiles.length; i++) {
+      const file = uploadedFiles[i];
+      const localUrl = URL.createObjectURL(file);
+      try {
+        const result = await processFileWithAI(file, selectedSeller);
+        const ai = result.ai_data || {};
+
+        console.log('Card result:', result.card_url, 'style:', result.card_style, 'bg:', result.bg_removal);
+        processedCards.push({
+          id: result.product?.id || `card_${i}`,
+          file,
+          originalUrl: localUrl,
+          cardUrl: result.card_url || localUrl,
+          storageUrl: result.card_url,
+          card_style: result.card_style,
+          bg_removal: result.bg_removal,
+          title_ru: ai.title_ru || 'Товар',
+          title_kz: ai.title_kz || 'Тауар',
+          description_ru: ai.description_ru || '',
+          category: ai.category || 'Прочее',
+          status: 'pending',
+          seller_id: selectedSeller.id
+        });
+      } catch (err) {
+        console.error('Ошибка обработки:', err);
+        errors++;
+        document.getElementById('statErrors').textContent = errors;
+        processedCards.push({
+          id: `error_${i}`,
+          file,
+          originalUrl: localUrl,
+          cardUrl: localUrl,
+          title_ru: '⚠️ Ошибка обработки',
+          title_kz: '⚠️ Өңдеу қатесі',
+          description_ru: err.message,
+          category: 'Прочее',
+          status: 'rejected',
+          seller_id: selectedSeller.id
+        });
+      }
+
+      done++;
+      const pct = Math.round((done / total) * 100);
+      document.getElementById('progressBar').style.width = pct + '%';
+      document.getElementById('progressPercent').textContent = pct + '%';
+      document.getElementById('statDone').textContent = done;
+      const remaining = Math.ceil((total - done) * 5);
+      document.getElementById('statTime').textContent = remaining > 0 ? `~${remaining}с` : '—';
+    }
+
+    // Mark all steps done
+    steps.forEach((s, i) => {
+      document.getElementById(s).classList.remove('active');
+      document.getElementById(s).classList.add('done');
+      document.getElementById(statuses[i]).textContent = '✓ Готово';
+    });
+
+    showToast(`✅ Обработано ${done} карточек!`, 'success');
+    await delay(1000);
+    goStep(4);
+    renderResults();
+  }
+
+  // ==================== RESULTS ====================
+  function renderResults() {
+    document.getElementById('totalCards').textContent = processedCards.length;
+    document.getElementById('pendingCards').textContent = processedCards.filter(c => c.status === 'pending').length;
+    document.getElementById('approvedCards').textContent = processedCards.filter(c => c.status === 'approved').length;
+    document.getElementById('rejectedCards').textContent = processedCards.filter(c => c.status === 'rejected').length;
+
+    const grid = document.getElementById('resultsGrid');
+    grid.innerHTML = processedCards.map(card => `
+      <div class="result-card ${card.status !== 'pending' ? card.status : ''}" id="card_${card.id}">
+        <div class="result-card-img" style="background:#fff;">
+          <img src="${card.storageUrl || card.cardUrl}" alt="${card.title_ru}" 
+            onerror="this.src='${card.cardUrl}'"
+            style="width:100%;height:100%;object-fit:cover;">
+          <div class="result-card-badge">${card.category}</div>
+          ${card.card_style === 'lifestyle' ? '<div class="lifestyle-badge">✨ Lifestyle AI</div>' : ''}
+        </div>
+        <div class="result-card-body">
+          <div class="result-card-title">${card.title_ru}</div>
+          <div class="result-card-desc">${card.description_ru}</div>
+          <div class="result-card-actions">
+            <button class="btn-sm btn-approve" onclick="approveCard('${card.id}')">✓ Ок</button>
+            <button class="btn-sm btn-reject" onclick="rejectCard('${card.id}')">✗</button>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function approveCard(id) {
+    const card = processedCards.find(c => c.id === id);
+    if (card) { card.status = 'approved'; renderResults(); }
+  }
+
+  function rejectCard(id) {
+    const card = processedCards.find(c => c.id === id);
+    if (card) { card.status = 'rejected'; renderResults(); }
+  }
+
+  function approveAll() {
+    processedCards.forEach(c => { if (c.status === 'pending') c.status = 'approved'; });
+    renderResults();
+    showToast('Все карточки одобрены!', 'success');
+  }
+
+  async function downloadAll() {
+    const approved = processedCards.filter(c => c.status === 'approved');
+    if (!approved.length) {
+      showToast('Нет одобренных карточек', 'error');
+      return;
+    }
+
+    showToast(`Подготовка ZIP (${approved.length} фото)...`, 'success');
+
+    const zip = new JSZip();
+
+    for (const card of approved) {
+      const url = card.storageUrl || card.cardUrl;
+      try {
+        const resp = await fetch(url);
+        const blob = await resp.blob();
+        const ext = blob.type.includes('png') ? 'png' : 'jpg';
+        const safeName = card.title_ru.replace(/[^а-яёa-z0-9]/gi, '_').slice(0, 40);
+        zip.file(`${safeName}_${card.id}.${ext}`, blob);
+      } catch (e) {
+        console.warn('Не удалось добавить файл:', card.id, e);
+      }
+    }
+
+    const content = await zip.generateAsync({ type: 'blob' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(content);
+    link.download = `el_dukeni_cards_${Date.now()}.zip`;
+    link.click();
+    showToast(`ZIP скачан — ${approved.length} карточек!`, 'success');
+  }
+
+  // ==================== UTILS ====================
+  function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    t.innerHTML = (type === 'success' ? '✅' : '❌') + ' ' + msg;
+    t.className = `toast ${type} show`;
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  init();
+</script>
+</body>
+</html>
