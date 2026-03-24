@@ -306,6 +306,15 @@ function compress(file, max=1024) {
   });
 }
 
+// ─── ОРИГИНАЛ для remove.bg ───
+function getOriginal(file) {
+  return new Promise(res => {
+    const reader = new FileReader();
+    reader.onload = e => res(e.target.result.split(',')[1]);
+    reader.readAsDataURL(file);
+  });
+}
+
 // ─── ОБРАБОТКА ───
 async function startProcessing() {
   if (!selectedSeller) { showToast('Выберите продавца','error'); return; }
@@ -332,11 +341,15 @@ async function startProcessing() {
     if(thumb) thumb.insertAdjacentHTML('beforeend','<div class="processing-overlay"><div class="spinner"></div></div>');
 
     try {
-      const b64 = await compress(uploadedFiles[i]);
+      // Параллельно: сжатое для Claude + оригинал для remove.bg
+      const [b64, origB64] = await Promise.all([
+        compress(uploadedFiles[i]),
+        getOriginal(uploadedFiles[i])
+      ]);
       const r = await fetch(FN_URL, {
         method:'POST',
         headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`,'apikey':SB_KEY},
-        body: JSON.stringify({ photo_base64:b64, photo_mime:'image/jpeg', seller_id:selectedSeller.id, seller_name:selectedSeller.name, manager_hint:hint })
+        body: JSON.stringify({ photo_base64:b64, original_base64:origB64, photo_mime:'image/jpeg', seller_id:selectedSeller.id, seller_name:selectedSeller.name, manager_hint:hint })
       });
       const data = await r.json();
       if(data.success) {
