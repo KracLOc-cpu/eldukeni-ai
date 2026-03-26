@@ -28,6 +28,38 @@
   @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
   @keyframes spin { to{transform:rotate(360deg);} }
 
+  .tabs { display:flex; gap:4px; }
+  .tab-btn {
+    padding:8px 18px; border:1px solid var(--border); border-radius:8px;
+    background:transparent; color:var(--text2); font-size:13px; font-weight:600;
+    cursor:pointer; font-family:'Golos Text',sans-serif; transition:all 0.2s;
+  }
+  .tab-btn:hover { border-color:var(--green); color:var(--green); }
+  .tab-btn.active { background:var(--green); border-color:var(--green); color:white; }
+  .tab-panel { display:none; }
+  .tab-panel.active { display:block; }
+
+  /* 4 ракурса */
+  .views-layout { display:grid; grid-template-columns:1fr 1fr; gap:24px; padding:24px; }
+  .views-upload-zone {
+    border:2px dashed var(--border); border-radius:16px;
+    padding:32px 20px; text-align:center; cursor:pointer;
+    transition:all 0.2s; background:var(--dark2);
+  }
+  .views-upload-zone:hover,.views-upload-zone.drag { border-color:var(--green); background:rgba(0,194,124,0.04); }
+  .views-preview { border:1px solid var(--border); border-radius:12px; overflow:hidden; aspect-ratio:1; background:var(--dark3); display:flex; align-items:center; justify-content:center; color:var(--text3); font-size:13px; margin-top:12px; }
+  .views-preview img { width:100%; height:100%; object-fit:contain; }
+  .views-result-box { border:1px solid var(--border); border-radius:16px; overflow:hidden; aspect-ratio:1; background:var(--dark3); display:flex; align-items:center; justify-content:center; position:relative; }
+  .views-result-box img { width:100%; height:100%; object-fit:contain; }
+  .split-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }
+  .split-item { aspect-ratio:1; border:1px solid var(--border); border-radius:10px; overflow:hidden; background:var(--dark3); position:relative; cursor:pointer; transition:all 0.2s; }
+  .split-item:hover { border-color:var(--green); transform:scale(1.02); }
+  .split-item img { width:100%; height:100%; object-fit:cover; }
+  .split-label { position:absolute; bottom:6px; left:6px; background:rgba(0,0,0,0.8); color:var(--green); font-size:10px; font-weight:600; padding:2px 7px; border-radius:20px; }
+  .views-loading { position:absolute; inset:0; background:rgba(13,17,23,0.9); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; }
+  .views-loading-text { font-size:12px; color:var(--text2); text-align:center; }
+
+
   .layout { display:grid; grid-template-columns:260px 1fr 320px; height:calc(100vh - 64px); }
 
   /* SIDEBAR */
@@ -132,9 +164,14 @@
 
 <header class="header">
   <div class="logo">El Dukeni <span>— Генератор карточек</span></div>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('cards')">🖼️ Карточки</button>
+    <button class="tab-btn" onclick="switchTab('views')">✨ 4 ракурса</button>
+  </div>
   <div class="status-dot"><div class="dot"></div> Система активна</div>
 </header>
 
+<div class="tab-panel active" id="tab-cards">
 <div class="layout">
 
   <!-- Продавцы -->
@@ -203,6 +240,48 @@
   </aside>
 
 </div>
+</div><!-- end tab-cards -->
+
+<!-- 4 РАКУРСА -->
+<div class="tab-panel" id="tab-views">
+  <div class="views-layout">
+    <div>
+      <div class="views-upload-zone" id="viewsUploadZone" onclick="document.getElementById('viewsFileInput').click()">
+        <div style="font-size:36px;margin-bottom:10px">📸</div>
+        <div style="font-size:14px;font-weight:600;margin-bottom:6px">Загрузите фото товара</div>
+        <div style="font-size:12px;color:var(--text2)">Перетащите или <span style="color:var(--green)">нажмите для выбора</span></div>
+        <input type="file" id="viewsFileInput" accept="image/*" style="display:none" onchange="handleViewsFile(this.files[0])">
+      </div>
+      <div class="views-preview" id="viewsPreview">Предпросмотр</div>
+      <div style="margin-top:12px">
+        <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px">Название товара (необязательно)</div>
+        <input class="hint-input" type="text" id="viewsProductName" placeholder="Например: Наушники Bloody G575...">
+      </div>
+      <button class="btn-primary" id="viewsGenBtn" onclick="generateViews()" disabled style="width:100%;margin-top:12px;justify-content:center">
+        ✨ Сгенерировать 4 ракурса
+      </button>
+      <div style="margin-top:10px;background:var(--dark2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--text2)">
+        💡 Стоимость: <span style="color:var(--green);font-weight:600">~$0.039 (~20 тг)</span> за генерацию
+      </div>
+    </div>
+    <div>
+      <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Результат 2×2</div>
+      <div class="views-result-box" id="viewsResultBox">
+        <div id="viewsLoading" class="views-loading" style="display:none">
+          <div class="spinner" style="width:36px;height:36px;border-width:3px"></div>
+          <div class="views-loading-text">Gemini генерирует 4 ракурса...<br><span style="font-size:11px;opacity:0.6">15–25 секунд</span></div>
+        </div>
+        <img id="viewsResultImg" src="" style="display:none">
+        <div id="viewsEmpty" style="color:var(--text3);font-size:13px;text-align:center;padding:20px">Загрузите фото<br>и нажмите генерировать</div>
+      </div>
+      <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin:12px 0 8px">Разделить на 4</div>
+      <div class="split-grid" id="viewsSplitGrid"></div>
+      <div id="viewsActions" style="display:none;gap:8px;margin-top:12px;display:none">
+        <button class="btn-action" onclick="downloadAllViews()" style="flex:1;padding:10px;border:1px solid var(--border);border-radius:9px;background:var(--dark3);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:6px">⬇️ Скачать все 4</button>
+      </div>
+    </div>
+  </div>
+</div><!-- end tab-views -->
 
 <div class="toast" id="toast"></div>
 
@@ -443,6 +522,114 @@ function showToast(msg, type='success') {
 }
 
 loadSellers();
+
+// ─── ВКЛАДКИ ───
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', (i===0&&tab==='cards')||(i===1&&tab==='views')));
+  document.getElementById('tab-cards').classList.toggle('active', tab==='cards');
+  document.getElementById('tab-views').classList.toggle('active', tab==='views');
+}
+
+// ─── 4 РАКУРСА ───
+let viewsFile = null;
+let viewsSplitImages = [];
+const VIEWS_URL = 'https://plgoehremyeeueweoxrt.supabase.co/functions/v1/generate-views';
+
+const vZone = document.getElementById('viewsUploadZone');
+vZone.addEventListener('dragover', e=>{e.preventDefault();vZone.classList.add('drag');});
+vZone.addEventListener('dragleave', ()=>vZone.classList.remove('drag'));
+vZone.addEventListener('drop', e=>{e.preventDefault();vZone.classList.remove('drag');handleViewsFile(e.dataTransfer.files[0]);});
+
+function handleViewsFile(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+  viewsFile = file;
+  const url = URL.createObjectURL(file);
+  document.getElementById('viewsPreview').innerHTML = `<img src="${url}">`;
+  document.getElementById('viewsGenBtn').disabled = false;
+  showToast('Фото загружено!', 'success');
+}
+
+function getB64(file) {
+  return new Promise(res => {
+    const r = new FileReader();
+    r.onload = e => res(e.target.result.split(',')[1]);
+    r.readAsDataURL(file);
+  });
+}
+
+async function generateViews() {
+  if (!viewsFile) return;
+  const btn = document.getElementById('viewsGenBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner" style="width:14px;height:14px;border-width:2px"></div> Генерирую...';
+  document.getElementById('viewsLoading').style.display = 'flex';
+  document.getElementById('viewsResultImg').style.display = 'none';
+  document.getElementById('viewsEmpty').style.display = 'none';
+  document.getElementById('viewsSplitGrid').innerHTML = '';
+  document.getElementById('viewsActions').style.display = 'none';
+
+  try {
+    const b64 = await getB64(viewsFile);
+    const name = document.getElementById('viewsProductName').value.trim();
+    const r = await fetch(VIEWS_URL, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`,'apikey':SB_KEY},
+      body: JSON.stringify({ photo_base64:b64, photo_mime:viewsFile.type, product_name:name })
+    });
+    const data = await r.json();
+    if (!data.success) throw new Error(data.error || 'Ошибка');
+
+    const mime = data.mime || 'image/png';
+    const img = document.getElementById('viewsResultImg');
+    img.src = `data:${mime};base64,${data.image_base64}`;
+    img.style.display = 'block';
+    document.getElementById('viewsLoading').style.display = 'none';
+
+    await splitViewsImage(data.image_base64, mime);
+    document.getElementById('viewsActions').style.display = 'flex';
+    showToast('Готово! 4 ракурса сгенерированы ✅', 'success');
+  } catch(e) {
+    document.getElementById('viewsLoading').style.display = 'none';
+    document.getElementById('viewsEmpty').style.display = 'block';
+    showToast('Ошибка: ' + e.message, 'error');
+  }
+  btn.disabled = false;
+  btn.innerHTML = '✨ Сгенерировать ещё раз';
+}
+
+async function splitViewsImage(base64, mime) {
+  return new Promise(res => {
+    const img = new Image();
+    img.onload = () => {
+      const w = img.width/2, h = img.height/2;
+      const labels = ['Спереди','Сзади','Сбоку','Детали'];
+      viewsSplitImages = [];
+      const grid = document.getElementById('viewsSplitGrid');
+      grid.innerHTML = '';
+      [[0,0],[1,0],[0,1],[1,1]].forEach(([cx,cy],i) => {
+        const canvas = document.createElement('canvas');
+        canvas.width=w; canvas.height=h;
+        canvas.getContext('2d').drawImage(img,cx*w,cy*h,w,h,0,0,w,h);
+        const dataUrl = canvas.toDataURL('image/png');
+        viewsSplitImages.push(dataUrl);
+        const div = document.createElement('div');
+        div.className = 'split-item';
+        div.innerHTML = `<img src="${dataUrl}"><div class="split-label">${labels[i]}</div>`;
+        div.onclick = () => { const a=document.createElement('a');a.href=dataUrl;a.download=`${labels[i]}.png`;a.click(); };
+        grid.appendChild(div);
+      });
+      res();
+    };
+    img.src = `data:${mime};base64,${base64}`;
+  });
+}
+
+function downloadAllViews() {
+  const labels = ['Спереди','Сзади','Сбоку','Детали'];
+  viewsSplitImages.forEach((url,i) => setTimeout(()=>{ const a=document.createElement('a');a.href=url;a.download=`${labels[i]}.png`;a.click(); },i*200));
+  showToast('Скачиваю 4 фото...', 'success');
+}
+
 </script>
 </body>
 </html>
