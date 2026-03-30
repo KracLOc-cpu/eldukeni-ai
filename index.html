@@ -199,7 +199,10 @@
     <div class="section" id="queueSection" style="display:none">
       <div class="section-header">
         <div class="section-title">Очередь <span class="badge" id="queueCount">0</span></div>
-        <button class="btn-primary" id="runBtn" onclick="startProcessing()" disabled>🚀 Создать карточки</button>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn-primary" id="runBtn" onclick="startProcessing()" disabled>🚀 Запустить генерацию</button>
+          <div id="batchInfo" style="font-size:11px;color:var(--text3)"></div>
+        </div>
       </div>
       <div class="file-grid" id="fileGrid"></div>
     </div>
@@ -226,7 +229,7 @@
     </div>
 
     <div class="progress-block" id="progressBlock" style="display:none">
-      <div class="progress-label"><span>Обрабатываю...</span><span id="progressText">0/0</span></div>
+      <div class="progress-label"><span id="progressLabel">Обрабатываю...</span><span id="progressText">0/0</span></div>
       <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
     </div>
 
@@ -351,6 +354,10 @@ function renderQueue() {
   if (!uploadedFiles.length) { qs.style.display='none'; return; }
   qs.style.display = 'block';
   document.getElementById('queueCount').textContent = uploadedFiles.length;
+  // Показываем примерное время
+  const mins = Math.ceil(uploadedFiles.length * 3 / 60);
+  const batchInfo = document.getElementById('batchInfo');
+  if(batchInfo) batchInfo.textContent = uploadedFiles.length > 1 ? `~${mins} мин (по 5 параллельно)` : '';
   document.getElementById('runBtn').disabled = !selectedSeller;
   grid.innerHTML = uploadedFiles.map((f,i) => {
     const url = URL.createObjectURL(f);
@@ -394,10 +401,40 @@ function getOriginal(file) {
   });
 }
 
-// ─── ОБРАБОТКА ───
+// ─── ОБРАБОТКА (параллельная, пакетами по 5) ───
+const BATCH_SIZE = 5;
+let isProcessing = false;
+let doneCount = 0;
+let startTime = 0;
+
+async function processOne(file, index, hint) {
+  try {
+    const [b64, origB64] = await Promise.all([compress(file), getOriginal(file)]);
+    const r = await fetch(FN_URL, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`,'apikey':SB_KEY},
+      body: JSON.stringify({ photo_base64:b64, original_base64:origB64, photo_mime:'image/jpeg', seller_id:selectedSeller.id, seller_name:selectedSeller.name, manager_hint:hint })
+    });
+    const data = await r.json();
+    // Убираем спиннер с превью
+    const thumb = document.getElementById(`thumb_${index}`);
+    if(thumb) { const ov = thumb.querySelector('.processing-overlay'); if(ov) ov.remove(); }
+    if(data.success) {
+      return { id:data.product.id, card_url:data.card_url, ai:data.ai_data, status:'pending' };
+    } else {
+      return { id:`err_${index}`, error:data.error||'Ошибка', status:'rejected' };
+    }
+  } catch(e) {
+    return { id:`err_${index}`, error:e.message, status:'rejected' };
+  }
+}
+
 async function startProcessing() {
   if (!selectedSeller) { showToast('Выберите продавца','error'); return; }
   if (!uploadedFiles.length) { showToast('Загрузите фото','error'); return; }
+  if (isProcessing) return;
+  isProcessing = true;
+  startTime = Date.now();
 
   const btn = document.getElementById('runBtn');
   btn.disabled = true;
@@ -410,35 +447,36 @@ async function startProcessing() {
   document.getElementById('emptyState').style.display = 'none';
 
   const hint = document.getElementById('managerHint').value.trim();
-  const total = uploadedFiles.length;
+  const files = [...uploadedFiles];
+  const total = files.length;
   processedCards = [];
+  doneCount = 0;
 
-  for (let i=0; i<total; i++) {
-    pt.textContent = `${i+1}/${total}`;
-    pf.style.width = `${(i/total)*100}%`;
+  // Показываем спиннеры на всех превью
+  files.forEach((_, i) => {
     const thumb = document.getElementById(`thumb_${i}`);
     if(thumb) thumb.insertAdjacentHTML('beforeend','<div class="processing-overlay"><div class="spinner"></div></div>');
+  });
 
-    try {
-      // Параллельно: сжатое для Claude + оригинал для remove.bg
-      const [b64, origB64] = await Promise.all([
-        compress(uploadedFiles[i]),
-        getOriginal(uploadedFiles[i])
-      ]);
-      const r = await fetch(FN_URL, {
-        method:'POST',
-        headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`,'apikey':SB_KEY},
-        body: JSON.stringify({ photo_base64:b64, original_base64:origB64, photo_mime:'image/jpeg', seller_id:selectedSeller.id, seller_name:selectedSeller.name, manager_hint:hint })
-      });
-      const data = await r.json();
-      if(data.success) {
-        processedCards.push({ id:data.product.id, card_url:data.card_url, ai:data.ai_data, status:'pending' });
-      } else {
-        processedCards.push({ id:`err_${i}`, error:data.error||'Ошибка', status:'rejected' });
-      }
-    } catch(e) {
-      processedCards.push({ id:`err_${i}`, error:e.message, status:'rejected' });
-    }
+  // Разбиваем на пакеты по BATCH_SIZE и обрабатываем параллельно
+  for (let i = 0; i < total; i += BATCH_SIZE) {
+    const batch = files.slice(i, i + BATCH_SIZE);
+    const batchResults = await Promise.all(
+      batch.map((file, j) => processOne(file, i+j, hint))
+    );
+    processedCards.push(...batchResults);
+    doneCount += batch.length;
+    const elapsed = Math.round((Date.now() - startTime) / 1000);
+    const remaining = doneCount < total ? Math.round((elapsed / doneCount) * (total - doneCount)) : 0;
+    pt.textContent = `${Math.min(doneCount, total)}/${total} • ${elapsed}с${remaining > 0 ? ' • ещё ~' + remaining + 'с' : ''}`;
+    pf.style.width = `${(doneCount/total)*100}%`;
+
+    // Показываем результаты по мере готовности
+    renderResults();
+    updateStats();
+
+    // Небольшая пауза между пакетами чтобы не перегружать API
+    if (i + BATCH_SIZE < total) await new Promise(r => setTimeout(r, 500));
   }
 
   pf.style.width = '100%';
@@ -447,12 +485,16 @@ async function startProcessing() {
   document.getElementById('queueSection').style.display = 'none';
   document.getElementById('managerHint').value = '';
   btn.disabled = false;
-  btn.innerHTML = '🚀 Создать карточки';
+  btn.innerHTML = '🚀 Запустить генерацию';
+  isProcessing = false;
 
-  renderResults();
-  updateStats();
   const ok = processedCards.filter(c=>c.card_url).length;
-  showToast(`Готово! Создано ${ok} карточек`, 'success');
+  const totalSec = Math.round((Date.now() - startTime) / 1000);
+  const mins = Math.floor(totalSec / 60);
+  const secs = totalSec % 60;
+  const timeStr = mins > 0 ? `${mins}м ${secs}с` : `${secs}с`;
+  pt.textContent = `${total}/${total} • ${timeStr}`;
+  showToast(`✅ Готово! ${ok} из ${total} карточек за ${timeStr}`, 'success');
 }
 
 function newBatch() {
