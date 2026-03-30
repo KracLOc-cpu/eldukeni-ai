@@ -617,7 +617,7 @@ function renderSearchImages(images, quality, label) {
               <span style="font-size:10px;color:var(--text3)">${img.width||'?'}×${img.height||'?'}</span>
               <span style="font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;max-width:80px;white-space:nowrap">${img.source||''}</span>
             </div>
-            ${img.price ? `<div style="font-size:11px;color:var(--green);margin-top:4px;font-weight:600">${img.price}</div>` : ''}
+            ${img.price && typeof img.price === 'string' ? `<div style="font-size:11px;color:var(--green);margin-top:4px;font-weight:600">${img.price}</div>` : ''}
             ${img.page_url ? `<button onclick="showPagePhotos(event,'${img.page_url.replace(/'/g,"\\'")}','${(img.title||'').replace(/'/g,"\\'")}')"
               style="width:100%;margin-top:6px;background:var(--dark3);border:1px solid var(--border);color:var(--text2);padding:5px 8px;border-radius:7px;font-size:10px;cursor:pointer;font-family:'Golos Text',sans-serif;transition:all 0.2s"
               onmouseover="this.style.borderColor='var(--green)';this.style.color='var(--green)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">📂 Все фото со страницы</button>` : ''}
