@@ -682,7 +682,7 @@ async function processSelectedImages() {
       const r = await fetch(PROCESS_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
-        body: JSON.stringify({ image_url: img.image_url || img.url, title: img.title || '', category: 'Прочее' })
+        body: JSON.stringify({ image_url: img.image_url || img.url, thumbnail_url: img.thumbnail || '', title: img.title || '', category: 'Прочее' })
       });
       const data = await r.json();
       const pcardEl = document.getElementById(`pcard-${i}`);
