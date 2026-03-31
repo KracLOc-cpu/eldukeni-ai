@@ -885,6 +885,7 @@ async function doSearch() {
 
 // ─── ПРОДАВЦЫ ───
 async function loadSellers() {
+  if (!document.getElementById('sellersList')) return; // вкладка Карточки удалена
   try {
     const r = await fetch(`${SB_URL}/rest/v1/sellers?order=name`, {
       headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
@@ -892,12 +893,14 @@ async function loadSellers() {
     const data = await r.json();
     renderSellers(Array.isArray(data) ? data : []);
   } catch(e) {
-    document.getElementById('sellersList').innerHTML = '<div style="color:var(--red);font-size:12px;padding:8px">Ошибка загрузки</div>';
+    const sl = document.getElementById('sellersList');
+    if (sl) sl.innerHTML = '<div style="color:var(--red);font-size:12px;padding:8px">Ошибка загрузки</div>';
   }
 }
 
 function renderSellers(sellers) {
   const el = document.getElementById('sellersList');
+  if (!el) return;
   if (!sellers.length) { el.innerHTML = '<div style="color:var(--text3);font-size:12px;padding:8px">Нет продавцов</div>'; return; }
   el.innerHTML = sellers.map(s => {
     const c = CAT_COLORS[s.category] || CAT_COLORS['Прочее'];
@@ -942,9 +945,11 @@ function renderQueue() {
 function removeFile(i) { uploadedFiles.splice(i,1); renderQueue(); }
 
 const zone = document.getElementById('uploadZone');
-zone.addEventListener('dragover', e=>{e.preventDefault();zone.classList.add('drag');});
-zone.addEventListener('dragleave', ()=>zone.classList.remove('drag'));
-zone.addEventListener('drop', e=>{e.preventDefault();zone.classList.remove('drag');handleFiles(e.dataTransfer.files);});
+if (zone) {
+  zone.addEventListener('dragover', e=>{e.preventDefault();zone.classList.add('drag');});
+  zone.addEventListener('dragleave', ()=>zone.classList.remove('drag'));
+  zone.addEventListener('drop', e=>{e.preventDefault();zone.classList.remove('drag');handleFiles(e.dataTransfer.files);});
+}
 
 // ─── СЖАТИЕ ───
 function compress(file, max=1024) {
