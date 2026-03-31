@@ -59,6 +59,39 @@
   .views-loading { position:absolute; inset:0; background:rgba(13,17,23,0.9); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; }
   .views-loading-text { font-size:12px; color:var(--text2); text-align:center; }
 
+  /* ═══ ПАКЕТНАЯ ГЕНЕРАЦИЯ ═══ */
+  .batch-layout { display:grid; grid-template-columns:380px 1fr; gap:0; height:calc(100vh - 64px); }
+  .batch-left { background:var(--dark2); border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; }
+  .batch-right { overflow-y:auto; padding:24px; }
+  .batch-drop-zone {
+    border:2px dashed var(--border); border-radius:14px; padding:28px 20px;
+    text-align:center; cursor:pointer; transition:all 0.2s; margin:16px;
+    background:var(--dark3);
+  }
+  .batch-drop-zone:hover, .batch-drop-zone.drag { border-color:var(--green); background:rgba(0,194,124,0.05); }
+  .batch-queue { flex:1; overflow-y:auto; padding:0 12px 12px; }
+  .batch-item {
+    display:flex; align-items:center; gap:10px;
+    padding:9px 10px; border-radius:10px; margin-bottom:6px;
+    border:1px solid var(--border); background:var(--dark3);
+    transition:all 0.2s;
+  }
+  .batch-item.processing { border-color:var(--yellow); background:rgba(227,179,65,0.06); }
+  .batch-item.done      { border-color:var(--green);  background:rgba(0,194,124,0.06); }
+  .batch-item.error     { border-color:var(--red);    background:rgba(248,81,73,0.06); }
+  .batch-thumb { width:42px; height:42px; border-radius:7px; object-fit:cover; flex-shrink:0; background:var(--dark2); }
+  .batch-item-name { font-size:12px; font-weight:600; color:var(--text); flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .batch-item-status { font-size:11px; color:var(--text3); margin-top:2px; }
+  .batch-item-mini { display:flex; gap:3px; margin-top:4px; }
+  .batch-item-mini img { width:22px; height:22px; border-radius:3px; object-fit:cover; cursor:pointer; }
+  .batch-progress-wrap { margin:0 16px 12px; }
+  .batch-progress-bar { height:6px; background:var(--dark3); border-radius:4px; overflow:hidden; margin-top:6px; }
+  .batch-progress-fill { height:100%; background:var(--green); border-radius:4px; transition:width 0.4s; }
+  .batch-stat { font-size:12px; color:var(--text2); display:flex; justify-content:space-between; }
+  .batch-preview-box { border:1px solid var(--border); border-radius:14px; overflow:hidden; background:var(--dark2); margin-bottom:20px; aspect-ratio:1; display:flex; align-items:center; justify-content:center; max-width:400px; }
+  .batch-preview-box img { width:100%; height:100%; object-fit:contain; }
+  .batch-cards-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:10px; }
+
   .layout { display:grid; grid-template-columns:260px 1fr 320px; height:calc(100vh - 64px); }
 
   .sidebar { background:var(--dark2); border-right:1px solid var(--border); padding:20px 12px; overflow-y:auto; }
@@ -160,6 +193,7 @@
   <div class="tabs">
     <button class="tab-btn active" onclick="switchTab('cards')">🖼️ Карточки</button>
     <button class="tab-btn" onclick="switchTab('views')">✨ 4 ракурса</button>
+    <button class="tab-btn" onclick="switchTab('batch')" style="background:linear-gradient(135deg,#00C27C,#009960);color:#fff;border-color:transparent">📦 Пакет×50</button>
     <button class="tab-btn" onclick="switchTab('search')">🔍 Поиск фото</button>
   </div>
   <div class="status-dot"><div class="dot"></div> Система активна</div>
@@ -265,6 +299,142 @@
       <div class="split-grid" id="viewsSplitGrid"></div>
       <div id="viewsActions" style="display:none;gap:8px;margin-top:12px">
         <button onclick="downloadAllViews()" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:9px;background:var(--dark3);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px">⬇️ Скачать все 4 (ZIP)</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ПАКЕТНАЯ ГЕНЕРАЦИЯ ═══ -->
+<div class="tab-panel" id="tab-batch">
+  <div class="batch-layout">
+
+    <!-- Левая панель: очередь -->
+    <div class="batch-left">
+      <!-- Зона загрузки -->
+      <div class="batch-drop-zone" id="batchDropZone"
+           onclick="document.getElementById('batchFileInput').click()"
+           ondragover="event.preventDefault();this.classList.add('drag')"
+           ondragleave="this.classList.remove('drag')"
+           ondrop="this.classList.remove('drag');handleBatchDrop(event)">
+        <div style="font-size:32px;margin-bottom:8px">📸</div>
+        <div style="font-size:14px;font-weight:600;margin-bottom:4px">Загрузите до 50 фото</div>
+        <div style="font-size:12px;color:var(--text2)">Перетащите или <span style="color:var(--green)">выберите файлы</span></div>
+        <input type="file" id="batchFileInput" accept="image/*" multiple style="display:none" onchange="handleBatchFiles(this.files)">
+      </div>
+
+      <!-- Категория -->
+      <div style="padding:0 16px 10px">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:1px">Категория (для фона)</div>
+        <select id="batchCategory" style="width:100%;padding:8px 10px;background:var(--dark3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;font-family:'Golos Text',sans-serif">
+          <option value="">Определить автоматически</option>
+          <option value="Электроника">Электроника</option>
+          <option value="Одежда и обувь">Одежда и обувь</option>
+          <option value="Косметика и парфюмерия">Косметика и парфюмерия</option>
+          <option value="Продукты питания">Продукты питания</option>
+          <option value="Товары для дома">Товары для дома</option>
+          <option value="Игрушки">Игрушки</option>
+          <option value="Спорт">Спорт</option>
+          <option value="Ювелирные украшения">Ювелирные украшения</option>
+          <option value="Прочее">Прочее</option>
+        </select>
+      </div>
+
+      <!-- Прогресс -->
+      <div class="batch-progress-wrap" id="batchProgressWrap" style="display:none">
+        <div class="batch-stat">
+          <span id="batchProgressText">0 / 0 фото</span>
+          <span id="batchProgressEta" style="color:var(--text3)"></span>
+        </div>
+        <div class="batch-progress-bar">
+          <div class="batch-progress-fill" id="batchProgressFill" style="width:0%"></div>
+        </div>
+      </div>
+
+      <!-- Кнопки управления -->
+      <div style="padding:0 16px 12px;display:flex;gap:8px">
+        <button id="batchStartBtn" onclick="startBatchProcessing()"
+          style="flex:1;padding:10px;background:var(--green);border:none;border-radius:9px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px"
+          disabled>
+          ▶ Запустить
+        </button>
+        <button id="batchStopBtn" onclick="stopBatchProcessing()"
+          style="display:none;padding:10px 14px;background:var(--red);border:none;border-radius:9px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif">
+          ⏹
+        </button>
+        <button onclick="clearBatchQueue()"
+          style="padding:10px 14px;background:transparent;border:1px solid var(--border);border-radius:9px;color:var(--text2);font-size:13px;cursor:pointer;font-family:'Golos Text',sans-serif">
+          🗑
+        </button>
+      </div>
+
+      <!-- ZIP скачать -->
+      <div style="padding:0 16px 16px" id="batchDownloadWrap" style="display:none">
+        <button id="batchDownloadBtn" onclick="downloadBatchZip()"
+          style="width:100%;padding:10px;background:var(--dark3);border:1px solid var(--green);border-radius:9px;color:var(--green);font-size:13px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif;display:none;align-items:center;justify-content:center;gap:6px">
+          ⬇️ Скачать все карточки (ZIP)
+        </button>
+      </div>
+
+      <!-- Очередь фото -->
+      <div class="batch-queue" id="batchQueue">
+        <div style="text-align:center;padding:20px;color:var(--text3);font-size:12px" id="batchEmptyMsg">
+          Добавьте фото товаров для начала работы
+        </div>
+      </div>
+    </div>
+
+    <!-- Правая панель: текущий результат + все готовые -->
+    <div class="batch-right">
+      <!-- Текущая обработка -->
+      <div id="batchCurrentWrap" style="display:none;margin-bottom:24px">
+        <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Обрабатывается сейчас</div>
+        <div style="display:flex;gap:16px;align-items:flex-start">
+          <div style="flex-shrink:0">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Оригинал</div>
+            <div style="width:120px;height:120px;border-radius:10px;overflow:hidden;border:1px solid var(--border);background:var(--dark2)">
+              <img id="batchCurrentOriginal" style="width:100%;height:100%;object-fit:cover">
+            </div>
+          </div>
+          <div style="flex:1">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Результат 2×2</div>
+            <div class="batch-preview-box" style="max-width:280px;height:280px">
+              <div id="batchCurrentSpinner" style="text-align:center">
+                <div class="spinner" style="width:32px;height:32px;border-width:3px;margin:0 auto 10px"></div>
+                <div style="font-size:12px;color:var(--text2)" id="batchCurrentStep">Анализирую товар...</div>
+              </div>
+              <img id="batchCurrentResult" style="display:none;width:100%;height:100%;object-fit:contain">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Итоговая статистика -->
+      <div id="batchSummaryBar" style="display:none;background:var(--dark2);border:1px solid var(--border);border-radius:12px;padding:14px 18px;margin-bottom:20px;display:none;gap:24px">
+        <div style="text-align:center"><div style="font-size:22px;font-weight:700;color:var(--green)" id="batchStatDone">0</div><div style="font-size:11px;color:var(--text3)">Готово</div></div>
+        <div style="text-align:center"><div style="font-size:22px;font-weight:700;color:var(--red)" id="batchStatErr">0</div><div style="font-size:11px;color:var(--text3)">Ошибок</div></div>
+        <div style="text-align:center"><div style="font-size:22px;font-weight:700;color:var(--text2)" id="batchStatCards">0</div><div style="font-size:11px;color:var(--text3)">Карточек</div></div>
+        <div style="text-align:center"><div style="font-size:22px;font-weight:700;color:var(--yellow)" id="batchStatCost">0 тг</div><div style="font-size:11px;color:var(--text3)">Примерно</div></div>
+      </div>
+
+      <!-- Готовые карточки сеткой -->
+      <div id="batchResultsSection" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div style="font-size:13px;font-weight:600;color:var(--text)">Готовые карточки</div>
+          <div style="font-size:11px;color:var(--text3)" id="batchResultsCount"></div>
+        </div>
+        <div class="batch-cards-grid" id="batchCardsGrid"></div>
+      </div>
+
+      <!-- Пустое состояние -->
+      <div id="batchRightEmpty" style="text-align:center;padding:60px 20px;color:var(--text3)">
+        <div style="font-size:48px;margin-bottom:16px">📦</div>
+        <div style="font-size:16px;font-weight:600;margin-bottom:8px">Пакетная генерация</div>
+        <div style="font-size:13px;line-height:1.6">
+          Загрузите до <span style="color:var(--green);font-weight:600">50 фото</span> слева<br>
+          и нажмите <strong>Запустить</strong><br><br>
+          Каждое фото → 4 ракурса с водяным знаком<br>
+          <span style="color:var(--text2)">~20 сек/фото · ~5 тг/карточка</span>
+        </div>
       </div>
     </div>
   </div>
@@ -379,11 +549,11 @@ const CAT_COLORS = {
 function switchTab(tab) {
   document.querySelectorAll('.tab-btn').forEach((b,i) => {
     b.classList.toggle('active',
-      (i===0&&tab==='cards')||(i===1&&tab==='views')||(i===2&&tab==='search'));
+      (i===0&&tab==='cards')||(i===1&&tab==='views')||(i===2&&tab==='batch')||(i===3&&tab==='search'));
   });
-  document.getElementById('tab-cards').classList.toggle('active', tab==='cards');
-  document.getElementById('tab-views').classList.toggle('active', tab==='views');
-  document.getElementById('tab-search').classList.toggle('active', tab==='search');
+  ['cards','views','batch','search'].forEach(t =>
+    document.getElementById(`tab-${t}`).classList.toggle('active', tab===t)
+  );
 }
 
 // ─── ПОИСК ФОТО ───
@@ -1031,6 +1201,336 @@ function showToast(msg, type='success') {
 }
 
 loadSellers();
+
+// ════════════════════════════════════════
+// ═══════  ПАКЕТНАЯ ГЕНЕРАЦИЯ  ═══════════
+// ════════════════════════════════════════
+
+let batchQueue    = [];   // [{file, name, status:'pending'|'processing'|'done'|'error', images:[], error:'', startMs:0}]
+let batchRunning  = false;
+let batchStopped  = false;
+const BATCH_LABELS = ['Спереди','Сзади','3-4_угол','Детали'];
+const BATCH_MAX    = 50;
+
+// Добавить файлы в очередь
+function handleBatchFiles(files) {
+  const arr = Array.from(files).slice(0, BATCH_MAX - batchQueue.length);
+  arr.forEach(f => {
+    if (batchQueue.length >= BATCH_MAX) return;
+    batchQueue.push({ file: f, name: f.name.replace(/\.[^.]+$/, ''), status: 'pending', images: [], error: '', startMs: 0 });
+  });
+  renderBatchQueue();
+  updateBatchControls();
+  document.getElementById('batchEmptyMsg').style.display = batchQueue.length ? 'none' : 'block';
+}
+
+function handleBatchDrop(e) {
+  e.preventDefault();
+  handleBatchFiles(e.dataTransfer.files);
+}
+
+// Отрисовка очереди
+function renderBatchQueue() {
+  const container = document.getElementById('batchQueue');
+  // Только перерисовываем изменившиеся элементы чтобы не мигало
+  batchQueue.forEach((item, i) => {
+    let el = document.getElementById(`bitem-${i}`);
+    const statusIcon = { pending:'⏳', processing:'🔄', done:'✅', error:'❌' }[item.status];
+    const statusColor = { pending:'var(--text3)', processing:'var(--yellow)', done:'var(--green)', error:'var(--red)' }[item.status];
+    const cls = item.status === 'pending' ? '' : ` ${item.status}`;
+
+    if (!el) {
+      el = document.createElement('div');
+      el.id = `bitem-${i}`;
+      el.className = `batch-item${cls}`;
+      const thumbSrc = URL.createObjectURL(item.file);
+      el.innerHTML = `
+        <img class="batch-thumb" src="${thumbSrc}" id="bthumb-${i}">
+        <div style="flex:1;min-width:0">
+          <div class="batch-item-name">${item.name}</div>
+          <div class="batch-item-status" id="bstatus-${i}" style="color:${statusColor}">${statusIcon} ${batchStatusText(item)}</div>
+          <div class="batch-item-mini" id="bmini-${i}"></div>
+        </div>`;
+      container.appendChild(el);
+    } else {
+      el.className = `batch-item${cls}`;
+      const statusEl = document.getElementById(`bstatus-${i}`);
+      if (statusEl) { statusEl.style.color = statusColor; statusEl.textContent = `${statusIcon} ${batchStatusText(item)}`; }
+      // Мини превью для done
+      const miniEl = document.getElementById(`bmini-${i}`);
+      if (miniEl && item.status === 'done' && item.images.length && !miniEl.children.length) {
+        item.images.forEach((url, j) => {
+          const img = document.createElement('img');
+          img.src = url; img.title = BATCH_LABELS[j];
+          img.onclick = (e) => { e.stopPropagation(); const a=document.createElement('a');a.href=url;a.download=`${item.name}_${BATCH_LABELS[j]}.png`;a.click(); };
+          miniEl.appendChild(img);
+        });
+      }
+    }
+  });
+}
+
+function batchStatusText(item) {
+  if (item.status === 'pending')    return 'Ожидание';
+  if (item.status === 'processing') return 'Генерирую...';
+  if (item.status === 'done')       return `${item.images.length} карточек готово`;
+  if (item.status === 'error')      return item.error.slice(0, 40);
+  return '';
+}
+
+function updateBatchControls() {
+  const startBtn = document.getElementById('batchStartBtn');
+  const hasPending = batchQueue.some(i => i.status === 'pending');
+  startBtn.disabled = batchQueue.length === 0 || !hasPending || batchRunning;
+  startBtn.textContent = batchRunning ? '⏳ Работаю...' : `▶ Запустить (${batchQueue.filter(i=>i.status==='pending').length} фото)`;
+}
+
+function updateBatchProgress() {
+  const total = batchQueue.length;
+  const done  = batchQueue.filter(i => i.status === 'done' || i.status === 'error').length;
+  const doneFl= batchQueue.filter(i => i.status === 'done').length;
+  const err   = batchQueue.filter(i => i.status === 'error').length;
+  const cards = batchQueue.reduce((s,i) => s + i.images.length, 0);
+
+  const wrap = document.getElementById('batchProgressWrap');
+  wrap.style.display = total > 0 ? 'block' : 'none';
+  document.getElementById('batchProgressFill').style.width = total ? `${Math.round(done/total*100)}%` : '0%';
+  document.getElementById('batchProgressText').textContent = `${done} / ${total} фото`;
+
+  // ETA
+  const processing = batchQueue.find(i => i.status === 'processing');
+  if (processing && processing.startMs) {
+    const elapsed = (Date.now() - processing.startMs) / 1000;
+    const remaining = batchQueue.filter(i => i.status === 'pending').length;
+    const etaSec = Math.round(remaining * 20 + (20 - elapsed));
+    if (etaSec > 0) document.getElementById('batchProgressEta').textContent = `~${Math.ceil(etaSec/60)} мин`;
+  } else {
+    document.getElementById('batchProgressEta').textContent = batchQueue.filter(i=>i.status==='pending').length > 0
+      ? `~${Math.ceil(batchQueue.filter(i=>i.status==='pending').length * 20 / 60)} мин` : '';
+  }
+
+  // Итоговая статистика
+  if (done > 0) {
+    const bar = document.getElementById('batchSummaryBar');
+    bar.style.display = 'flex';
+    document.getElementById('batchStatDone').textContent  = doneFl;
+    document.getElementById('batchStatErr').textContent   = err;
+    document.getElementById('batchStatCards').textContent = cards;
+    document.getElementById('batchStatCost').textContent  = `~${Math.round(doneFl * 20)} тг`;
+  }
+}
+
+// Разделить 2×2 изображение на 4 карточки с водяным знаком
+function splitBatchImage(base64, mime) {
+  return new Promise(res => {
+    const img = new Image();
+    img.onload = () => {
+      const w = img.width / 2, h = img.height / 2;
+      const results = [];
+      [[0,0],[1,0],[0,1],[1,1]].forEach(([cx, cy]) => {
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        const ctx = c.getContext('2d');
+        ctx.drawImage(img, cx*w, cy*h, w, h, 0, 0, w, h);
+        applyWatermarkOnCanvas(ctx, w, h);
+        results.push(c.toDataURL('image/png'));
+      });
+      res(results);
+    };
+    img.onerror = () => res([]);
+    img.src = `data:${mime};base64,${base64}`;
+  });
+}
+
+// Добавить готовые карточки в правую сетку
+function addBatchCardToGrid(item, idx) {
+  const section = document.getElementById('batchResultsSection');
+  const grid    = document.getElementById('batchCardsGrid');
+  const empty   = document.getElementById('batchRightEmpty');
+  empty.style.display  = 'none';
+  section.style.display = 'block';
+
+  const card = document.createElement('div');
+  card.style.cssText = 'border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--dark2);';
+  // Показываем первый ракурс (Спереди) как превью карточки
+  card.innerHTML = `
+    <div style="aspect-ratio:1;overflow:hidden;position:relative">
+      <img src="${item.images[0]}" style="width:100%;height:100%;object-fit:cover">
+      <div style="position:absolute;top:6px;left:6px;background:rgba(0,194,124,0.9);color:#fff;font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px">${idx+1}</div>
+    </div>
+    <div style="padding:8px 10px">
+      <div style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:6px" title="${item.name}">${item.name}</div>
+      <div style="display:flex;gap:3px;margin-bottom:8px">
+        ${item.images.map((url,j) => `<img src="${url}" style="flex:1;aspect-ratio:1;border-radius:4px;object-fit:cover;cursor:pointer" title="${BATCH_LABELS[j]}" onclick="(function(u,n){const a=document.createElement('a');a.href=u;a.download=n;a.click()})('${url}','${item.name}_${BATCH_LABELS[j]}.png')">`).join('')}
+      </div>
+      <div style="display:flex;gap:5px">
+        <button onclick="downloadSingleBatchItem(${idx})" style="flex:1;padding:5px;background:var(--dark3);border:1px solid var(--border);border-radius:6px;color:var(--text2);font-size:11px;cursor:pointer;font-family:'Golos Text',sans-serif">⬇ 4 фото</button>
+      </div>
+    </div>`;
+  grid.appendChild(card);
+
+  const countEl = document.getElementById('batchResultsCount');
+  countEl.textContent = `${grid.children.length} товаров`;
+}
+
+async function downloadSingleBatchItem(idx) {
+  const item = batchQueue[idx];
+  if (!item || !item.images.length) return;
+  const zip = new JSZip();
+  item.images.forEach((url, j) => {
+    zip.file(`${item.name}_${BATCH_LABELS[j]}.png`, url.split(',')[1], { base64: true });
+  });
+  const blob = await zip.generateAsync({ type: 'blob' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `${item.name}_4ракурса.zip`; a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// ─── ГЛАВНЫЙ ЦИКЛ ОБРАБОТКИ ───
+async function startBatchProcessing() {
+  if (batchRunning) return;
+  const pending = batchQueue.filter(i => i.status === 'pending');
+  if (!pending.length) return;
+
+  batchRunning = true;
+  batchStopped = false;
+  document.getElementById('batchStartBtn').style.display = 'none';
+  document.getElementById('batchStopBtn').style.display  = 'block';
+  document.getElementById('batchCurrentWrap').style.display = 'block';
+  document.getElementById('batchRightEmpty').style.display = 'none';
+
+  const category = document.getElementById('batchCategory').value;
+
+  for (let i = 0; i < batchQueue.length; i++) {
+    if (batchStopped) break;
+    if (batchQueue[i].status !== 'pending') continue;
+
+    batchQueue[i].status  = 'processing';
+    batchQueue[i].startMs = Date.now();
+
+    // Показать текущий оригинал
+    const origUrl = URL.createObjectURL(batchQueue[i].file);
+    document.getElementById('batchCurrentOriginal').src = origUrl;
+    document.getElementById('batchCurrentSpinner').style.display = 'block';
+    document.getElementById('batchCurrentResult').style.display  = 'none';
+    document.getElementById('batchCurrentStep').textContent = 'Анализирую товар...';
+
+    renderBatchQueue();
+    updateBatchProgress();
+    updateBatchControls();
+
+    // Прокрутить очередь к текущему элементу
+    const itemEl = document.getElementById(`bitem-${i}`);
+    if (itemEl) itemEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    try {
+      const b64 = await getB64(batchQueue[i].file);
+      document.getElementById('batchCurrentStep').textContent = 'Gemini генерирует 4 ракурса...';
+
+      const r = await fetch(VIEWS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SB_KEY}`, 'apikey': SB_KEY },
+        body: JSON.stringify({ photo_base64: b64, photo_mime: batchQueue[i].file.type, product_name: '', category })
+      });
+      const data = await r.json();
+      if (!data.success) throw new Error(data.error || 'Ошибка генерации');
+
+      const mime = data.mime || 'image/png';
+
+      // Показать результат 2×2
+      document.getElementById('batchCurrentSpinner').style.display = 'none';
+      const resultImg = document.getElementById('batchCurrentResult');
+      resultImg.src = `data:${mime};base64,${data.image_base64}`;
+      resultImg.style.display = 'block';
+
+      document.getElementById('batchCurrentStep').textContent = 'Разделяю и добавляю водяной знак...';
+
+      // Разбить на 4 с водяным знаком
+      const images = await splitBatchImage(data.image_base64, mime);
+      if (!images.length) throw new Error('Не удалось разделить изображение');
+
+      batchQueue[i].status = 'done';
+      batchQueue[i].images = images;
+
+      addBatchCardToGrid(batchQueue[i], i);
+      showToast(`✅ ${batchQueue[i].name} — 4 карточки готовы`, 'success');
+
+      // Показать кнопку скачать ZIP если хотя бы один готов
+      const dlBtn = document.getElementById('batchDownloadBtn');
+      dlBtn.style.display = 'flex';
+
+    } catch(e) {
+      batchQueue[i].status = 'error';
+      batchQueue[i].error  = e.message;
+      console.error(`[batch] item ${i} error:`, e.message);
+    }
+
+    renderBatchQueue();
+    updateBatchProgress();
+
+    // Пауза между запросами (не перегружать API)
+    if (i < batchQueue.length - 1 && !batchStopped) {
+      await new Promise(r => setTimeout(r, 1500));
+    }
+  }
+
+  batchRunning = false;
+  batchStopped = false;
+  document.getElementById('batchStartBtn').style.display = 'block';
+  document.getElementById('batchStopBtn').style.display  = 'none';
+  updateBatchControls();
+
+  const doneCount = batchQueue.filter(i => i.status === 'done').length;
+  const errCount  = batchQueue.filter(i => i.status === 'error').length;
+  if (doneCount > 0) {
+    showToast(`Готово! ${doneCount} товаров · ${doneCount * 4} карточек${errCount ? ` · ошибок: ${errCount}` : ''}`, 'success');
+  }
+}
+
+function stopBatchProcessing() {
+  batchStopped = true;
+  showToast('Останавливаю после текущего фото...', 'success');
+}
+
+function clearBatchQueue() {
+  if (batchRunning) { showToast('Сначала остановите обработку', 'error'); return; }
+  batchQueue = [];
+  document.getElementById('batchQueue').innerHTML =
+    '<div style="text-align:center;padding:20px;color:var(--text3);font-size:12px" id="batchEmptyMsg">Добавьте фото товаров для начала работы</div>';
+  document.getElementById('batchProgressWrap').style.display = 'none';
+  document.getElementById('batchCurrentWrap').style.display  = 'none';
+  document.getElementById('batchResultsSection').style.display = 'none';
+  document.getElementById('batchSummaryBar').style.display   = 'none';
+  document.getElementById('batchRightEmpty').style.display   = 'block';
+  document.getElementById('batchDownloadBtn').style.display  = 'none';
+  updateBatchControls();
+}
+
+async function downloadBatchZip() {
+  const done = batchQueue.filter(i => i.status === 'done' && i.images.length);
+  if (!done.length) return;
+  const btn = document.getElementById('batchDownloadBtn');
+  btn.disabled = true; btn.textContent = '⏳ Упаковываю ZIP...';
+  try {
+    const zip = new JSZip();
+    done.forEach(item => {
+      const folder = zip.folder(item.name);
+      item.images.forEach((url, j) => {
+        folder.file(`${BATCH_LABELS[j]}.png`, url.split(',')[1], { base64: true });
+      });
+    });
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `eldukeni_batch_${done.length}товаров_${Date.now()}.zip`;
+    a.click(); URL.revokeObjectURL(a.href);
+    showToast(`ZIP скачан: ${done.length} товаров · ${done.length * 4} карточек`, 'success');
+  } catch(e) {
+    showToast('Ошибка ZIP: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.innerHTML = '⬇️ Скачать все карточки (ZIP)';
+  }
+}
 
 // ─── 4 РАКУРСА ───
 let viewsFile = null;
