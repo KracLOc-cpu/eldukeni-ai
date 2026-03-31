@@ -151,6 +151,7 @@
   ::-webkit-scrollbar { width:5px; }
   ::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
 
@@ -611,7 +612,10 @@ function renderSearchImages(images, quality, label) {
       </button>
     </div>
     <div id="processedResults" style="display:none;margin-bottom:24px">
-      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px">Готовые карточки:</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-size:13px;font-weight:600;color:var(--text)">Готовые карточки:</div>
+        <button onclick="downloadSearchZip()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px">⬇️ Скачать ZIP</button>
+      </div>
       <div id="processedGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px"></div>
     </div>
     <div id="searchGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px">
@@ -971,13 +975,52 @@ function updateStats() {
 }
 
 async function downloadAll() {
-  const list = processedCards.filter(c=>c.status==='approved'&&c.card_url);
-  if(!list.length) { showToast('Нет одобренных','error'); return; }
-  for(const c of list) {
+  const list = processedCards.filter(c => c.status === 'approved' && c.card_url);
+  if (!list.length) { showToast('Нет одобренных карточек', 'error'); return; }
+  showToast(`Упаковываю ZIP (${list.length} фото)...`, 'success');
+  try {
+    const zip = new JSZip();
+    for (let i = 0; i < list.length; i++) {
+      const c = list[i];
+      try {
+        const resp = await fetch(c.card_url);
+        const blob = await resp.blob();
+        const ext = c.card_url.includes('.svg') ? 'svg' : c.card_url.includes('.png') ? 'png' : 'jpg';
+        const name = (c.title_ru || `card_${i+1}`).replace(/[^а-яёa-z0-9\s]/gi,'_').slice(0,40);
+        zip.file(`${i+1}_${name}.${ext}`, blob);
+      } catch { zip.file(`card_${i+1}.svg`, ''); }
+    }
+    const content = await zip.generateAsync({ type: 'blob' });
     const a = document.createElement('a');
-    a.href=c.card_url; a.download=`card_${c.id}.svg`; a.target='_blank'; a.click();
-    await new Promise(r=>setTimeout(r,300));
-  }
+    a.href = URL.createObjectURL(content);
+    a.download = `eldukeni_cards_${Date.now()}.zip`;
+    a.click();
+    showToast(`ZIP скачан — ${list.length} карточек!`, 'success');
+  } catch(e) { showToast('Ошибка ZIP: ' + e.message, 'error'); }
+}
+
+async function downloadSearchZip() {
+  const cards = [...document.querySelectorAll('#processedGrid a[download]')];
+  if (!cards.length) { showToast('Нет готовых карточек', 'error'); return; }
+  showToast(`Упаковываю ZIP (${cards.length} фото)...`, 'success');
+  try {
+    const zip = new JSZip();
+    for (let i = 0; i < cards.length; i++) {
+      const url = cards[i].href;
+      try {
+        const resp = await fetch(url);
+        const blob = await resp.blob();
+        const ext = url.includes('.svg') ? 'svg' : 'png';
+        zip.file(`card_${i+1}.${ext}`, blob);
+      } catch { /* пропускаем */ }
+    }
+    const content = await zip.generateAsync({ type: 'blob' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(content);
+    a.download = `eldukeni_search_${Date.now()}.zip`;
+    a.click();
+    showToast('ZIP скачан!', 'success');
+  } catch(e) { showToast('Ошибка: ' + e.message, 'error'); }
 }
 
 function showToast(msg, type='success') {
