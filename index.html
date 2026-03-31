@@ -264,7 +264,7 @@
       <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin:12px 0 8px">Разделить на 4</div>
       <div class="split-grid" id="viewsSplitGrid"></div>
       <div id="viewsActions" style="display:none;gap:8px;margin-top:12px">
-        <button onclick="downloadAllViews()" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:9px;background:var(--dark3);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px">⬇️ Скачать все 4</button>
+        <button onclick="downloadAllViews()" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:9px;background:var(--dark3);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px">⬇️ Скачать все 4 (ZIP)</button>
       </div>
     </div>
   </div>
@@ -1075,7 +1075,7 @@ async function generateViews() {
     const r = await fetch(VIEWS_URL, {
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`,'apikey':SB_KEY},
-      body: JSON.stringify({ photo_base64:b64, photo_mime:viewsFile.type, product_name:name })
+      body: JSON.stringify({ photo_base64:b64, photo_mime:viewsFile.type, product_name:name, category: currentSeller?.category || '' })
     });
     const data = await r.json();
     if (!data.success) throw new Error(data.error || 'Ошибка');
@@ -1086,7 +1086,7 @@ async function generateViews() {
     document.getElementById('viewsLoading').style.display = 'none';
     await splitViewsImage(data.image_base64, mime);
     document.getElementById('viewsActions').style.display = 'flex';
-    showToast('Готово! 4 ракурса сгенерированы ✅', 'success');
+    showToast(`Готово! 4 ракурса с водяным знаком ✅${data.model_used ? ' (' + data.model_used.split('-').slice(0,3).join('-') + ')' : ''}`, 'success');
   } catch(e) {
     document.getElementById('viewsLoading').style.display = 'none';
     document.getElementById('viewsEmpty').style.display = 'block';
@@ -1096,25 +1096,61 @@ async function generateViews() {
   btn.innerHTML = '✨ Сгенерировать ещё раз';
 }
 
+// Водяной знак El Dukeni на canvas (каждый ракурс)
+function applyWatermarkOnCanvas(ctx, w, h) {
+  // 1. Диагональный повторяющийся текст
+  ctx.save();
+  ctx.font = 'bold 13px Arial';
+  ctx.fillStyle = '#ffffff';
+  ctx.globalAlpha = 0.11;
+  for (let gy = 55; gy < h + 60; gy += 90) {
+    for (let gx = -50; gx < w + 60; gx += 150) {
+      const off = (Math.floor(gy / 90) % 2) * 75;
+      ctx.save();
+      ctx.translate(gx + off, gy);
+      ctx.rotate(-22 * Math.PI / 180);
+      ctx.fillText('El Dukeni', 0, 0);
+      ctx.restore();
+    }
+  }
+  ctx.restore();
+  // 2. Цветная полоса снизу
+  ctx.save();
+  ctx.globalAlpha = 0.88;
+  ctx.fillStyle = '#00C27C';
+  ctx.fillRect(0, h - 28, w, 28);
+  ctx.globalAlpha = 1;
+  ctx.font = 'bold 11px Arial';
+  ctx.fillStyle = '#ffffff';
+  ctx.textAlign = 'center';
+  ctx.fillText('E L   D U K E N I', w / 2, h - 10);
+  ctx.textAlign = 'left';
+  ctx.restore();
+}
+
 async function splitViewsImage(base64, mime) {
   return new Promise(res => {
     const img = new Image();
     img.onload = () => {
-      const w=img.width/2, h=img.height/2;
-      const labels = ['Спереди','Сзади','Сбоку','Детали'];
+      const w = img.width / 2, h = img.height / 2;
+      const labels = ['Спереди', 'Сзади', '3/4 угол', 'Детали'];
       viewsSplitImages = [];
       const grid = document.getElementById('viewsSplitGrid');
       grid.innerHTML = '';
-      [[0,0],[1,0],[0,1],[1,1]].forEach(([cx,cy],i) => {
+      [[0,0],[1,0],[0,1],[1,1]].forEach(([cx, cy], i) => {
         const canvas = document.createElement('canvas');
-        canvas.width=w; canvas.height=h;
-        canvas.getContext('2d').drawImage(img,cx*w,cy*h,w,h,0,0,w,h);
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        // Вырезаем квадрант
+        ctx.drawImage(img, cx * w, cy * h, w, h, 0, 0, w, h);
+        // Наносим водяной знак El Dukeni
+        applyWatermarkOnCanvas(ctx, w, h);
         const dataUrl = canvas.toDataURL('image/png');
         viewsSplitImages.push(dataUrl);
         const div = document.createElement('div');
         div.className = 'split-item';
         div.innerHTML = `<img src="${dataUrl}"><div class="split-label">${labels[i]}</div>`;
-        div.onclick = () => { const a=document.createElement('a');a.href=dataUrl;a.download=`${labels[i]}.png`;a.click(); };
+        div.onclick = () => { const a = document.createElement('a'); a.href = dataUrl; a.download = `eldukeni_${labels[i]}.png`; a.click(); };
         grid.appendChild(div);
       });
       res();
@@ -1123,10 +1159,29 @@ async function splitViewsImage(base64, mime) {
   });
 }
 
-function downloadAllViews() {
-  const labels = ['Спереди','Сзади','Сбоку','Детали'];
-  viewsSplitImages.forEach((url,i) => setTimeout(()=>{ const a=document.createElement('a');a.href=url;a.download=`${labels[i]}.png`;a.click(); },i*200));
-  showToast('Скачиваю 4 фото...', 'success');
+async function downloadAllViews() {
+  if (!viewsSplitImages.length) return;
+  const labels = ['Спереди', 'Сзади', '3/4_угол', 'Детали'];
+  const btn = document.querySelector('#viewsActions button');
+  if (btn) { btn.disabled = true; btn.textContent = 'Упаковываю ZIP...'; }
+  try {
+    const zip = new JSZip();
+    viewsSplitImages.forEach((url, i) => {
+      const b64 = url.split(',')[1];
+      zip.file(`eldukeni_${labels[i]}.png`, b64, { base64: true });
+    });
+    const content = await zip.generateAsync({ type: 'blob' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(content);
+    a.download = 'eldukeni_4_ракурса.zip';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    showToast('ZIP скачан — 4 ракурса с водяным знаком ✅', 'success');
+  } catch(e) {
+    showToast('Ошибка ZIP: ' + e.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '⬇️ Скачать все 4 (ZIP)'; }
+  }
 }
 </script>
 </body>
