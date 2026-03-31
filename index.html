@@ -92,6 +92,15 @@
   .batch-preview-box img { width:100%; height:100%; object-fit:contain; }
   .batch-cards-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:10px; }
 
+  /* ═══ ДЕТАЛЬНЫЙ ПРОСМОТР КАРТОЧКИ ═══ */
+  .batch-detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .batch-detail-img { border-radius:10px; overflow:hidden; position:relative; aspect-ratio:1; border:1px solid var(--border); cursor:pointer; transition:border-color 0.2s; }
+  .batch-detail-img:hover { border-color:var(--green); }
+  .batch-detail-img img { width:100%; height:100%; object-fit:cover; }
+  .batch-detail-label { position:absolute; bottom:8px; left:8px; background:rgba(0,0,0,0.8); color:var(--green); font-size:11px; font-weight:600; padding:3px 8px; border-radius:20px; }
+  .batch-detail-dl { position:absolute; top:8px; right:8px; background:rgba(0,0,0,0.7); color:#fff; font-size:11px; padding:3px 8px; border-radius:20px; opacity:0; transition:opacity 0.2s; }
+  .batch-detail-img:hover .batch-detail-dl { opacity:1; }
+
   .layout { display:grid; grid-template-columns:260px 1fr 320px; height:calc(100vh - 64px); }
 
   .sidebar { background:var(--dark2); border-right:1px solid var(--border); padding:20px 12px; overflow-y:auto; }
@@ -191,77 +200,12 @@
 <header class="header">
   <div class="logo">El Dukeni <span>— Генератор карточек</span></div>
   <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('cards')">🖼️ Карточки</button>
     <button class="tab-btn" onclick="switchTab('views')">✨ 4 ракурса</button>
-    <button class="tab-btn" onclick="switchTab('batch')" style="background:linear-gradient(135deg,#00C27C,#009960);color:#fff;border-color:transparent">📦 Пакет×50</button>
+    <button class="tab-btn active" onclick="switchTab('batch')" style="background:linear-gradient(135deg,#00C27C,#009960);color:#fff;border-color:transparent">📦 Пакет×50</button>
     <button class="tab-btn" onclick="switchTab('search')">🔍 Поиск фото</button>
   </div>
   <div class="status-dot"><div class="dot"></div> Система активна</div>
 </header>
-
-<!-- ═══ КАРТОЧКИ ═══ -->
-<div class="tab-panel active" id="tab-cards">
-<div class="layout">
-  <aside class="sidebar">
-    <div class="sidebar-title">Продавцы</div>
-    <div id="sellersList"><div style="color:var(--text3);font-size:12px;padding:8px">Загрузка...</div></div>
-  </aside>
-
-  <main class="main">
-    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
-      <div class="upload-icon">📸</div>
-      <div class="upload-title">Загрузите фотографии товаров</div>
-      <div class="upload-sub">Перетащите или <span>нажмите для выбора</span></div>
-      <div class="upload-sub" style="margin-top:4px;font-size:11px;color:var(--text3)">JPG, PNG, WebP — любое качество</div>
-      <input type="file" id="fileInput" multiple accept="image/*" onchange="handleFiles(this.files)">
-    </div>
-
-    <div class="hint-block">
-      <div class="hint-label">💡 Подсказка для ИИ — если товар непонятен на фото (необязательно)</div>
-      <textarea class="hint-input" id="managerHint" placeholder="Например: китайский шампунь для волос, зелёная бутылка, бренд Ming Tao..."></textarea>
-    </div>
-
-    <div class="section" id="queueSection" style="display:none">
-      <div class="section-header">
-        <div class="section-title">Очередь <span class="badge" id="queueCount">0</span></div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <button class="btn-primary" id="runBtn" onclick="startProcessing()" disabled>🚀 Запустить генерацию</button>
-          <div id="batchInfo" style="font-size:11px;color:var(--text3)"></div>
-        </div>
-      </div>
-      <div class="file-grid" id="fileGrid"></div>
-    </div>
-
-    <div class="section" id="resultsSection" style="display:none">
-      <div class="section-header">
-        <div class="section-title">Готовые карточки <span class="badge" id="resultsCount">0</span></div>
-        <button class="btn-secondary" onclick="newBatch()">+ Новая партия</button>
-      </div>
-      <div class="result-grid" id="resultGrid"></div>
-    </div>
-  </main>
-
-  <aside class="right-panel">
-    <div class="panel-title">Статистика сессии</div>
-    <div class="stats-grid">
-      <div class="stat-box"><div class="stat-num" id="statTotal">0</div><div class="stat-label">Создано</div></div>
-      <div class="stat-box"><div class="stat-num g" id="statApproved">0</div><div class="stat-label">Одобрено</div></div>
-      <div class="stat-box"><div class="stat-num" id="statPending">0</div><div class="stat-label">На проверке</div></div>
-      <div class="stat-box"><div class="stat-num r" id="statRejected">0</div><div class="stat-label">Отклонено</div></div>
-    </div>
-    <div class="progress-block" id="progressBlock" style="display:none">
-      <div class="progress-label"><span id="progressLabel">Обрабатываю...</span><span id="progressText">0/0</span></div>
-      <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
-    </div>
-    <button class="btn-dl" id="downloadBtn" onclick="downloadAll()" style="display:none">⬇️ Скачать одобренные</button>
-    <div class="empty-state" id="emptyState">
-      <div class="empty-icon">✨</div>
-      <div class="empty-title">Выберите продавца слева</div>
-      <div class="empty-sub">и загрузите фотографии товаров</div>
-    </div>
-  </aside>
-</div>
-</div>
 
 <!-- ═══ 4 РАКУРСА ═══ -->
 <div class="tab-panel" id="tab-views">
@@ -305,7 +249,7 @@
 </div>
 
 <!-- ═══ ПАКЕТНАЯ ГЕНЕРАЦИЯ ═══ -->
-<div class="tab-panel" id="tab-batch">
+<div class="tab-panel active" id="tab-batch">
   <div class="batch-layout">
 
     <!-- Левая панель: очередь -->
@@ -549,9 +493,9 @@ const CAT_COLORS = {
 function switchTab(tab) {
   document.querySelectorAll('.tab-btn').forEach((b,i) => {
     b.classList.toggle('active',
-      (i===0&&tab==='cards')||(i===1&&tab==='views')||(i===2&&tab==='batch')||(i===3&&tab==='search'));
+      (i===0&&tab==='views')||(i===1&&tab==='batch')||(i===2&&tab==='search'));
   });
-  ['cards','views','batch','search'].forEach(t =>
+  ['views','batch','search'].forEach(t =>
     document.getElementById(`tab-${t}`).classList.toggle('active', tab===t)
   );
 }
@@ -1320,18 +1264,27 @@ function updateBatchProgress() {
   }
 }
 
-// Разделить 2×2 изображение на 4 карточки с водяным знаком
+// Разделить 2×2 изображение на 4 карточки: фон El Dukeni + товар + брендовая полоса
 function splitBatchImage(base64, mime) {
   return new Promise(res => {
     const img = new Image();
     img.onload = () => {
       const w = img.width / 2, h = img.height / 2;
       const results = [];
+      // Товар занимает 88% площади, по 6% поля со всех сторон
+      const pad    = Math.round(w * 0.06);
+      const stripH = Math.round(h * 0.07); // высота брендовой полосы
+      const prodW  = w - pad * 2;
+      const prodH  = h - pad - stripH; // снизу полоса, сверху/бокам — поля с паттерном
       [[0,0],[1,0],[0,1],[1,1]].forEach(([cx, cy]) => {
         const c = document.createElement('canvas');
         c.width = w; c.height = h;
         const ctx = c.getContext('2d');
-        ctx.drawImage(img, cx*w, cy*h, w, h, 0, 0, w, h);
+        // 1. Фирменный фон с ромбами
+        drawElDukeniBackground(ctx, w, h);
+        // 2. Товар поверх фона (центрирован с отступами)
+        ctx.drawImage(img, cx*w, cy*h, w, h, pad, pad, prodW, prodH);
+        // 3. Брендовая полоса снизу
         applyWatermarkOnCanvas(ctx, w, h);
         results.push(c.toDataURL('image/png'));
       });
@@ -1347,30 +1300,29 @@ function addBatchCardToGrid(item, idx) {
   const section = document.getElementById('batchResultsSection');
   const grid    = document.getElementById('batchCardsGrid');
   const empty   = document.getElementById('batchRightEmpty');
-  empty.style.display  = 'none';
+  empty.style.display   = 'none';
   section.style.display = 'block';
 
   const card = document.createElement('div');
-  card.style.cssText = 'border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--dark2);';
-  // Показываем первый ракурс (Спереди) как превью карточки
+  card.id = `bcard-${idx}`;
+  card.style.cssText = 'border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--dark2);cursor:pointer;transition:border-color 0.2s,transform 0.15s;';
+  card.onmouseenter = () => { card.style.borderColor='var(--green)'; card.style.transform='translateY(-2px)'; };
+  card.onmouseleave = () => { card.style.borderColor='var(--border)'; card.style.transform=''; };
+  card.onclick = () => openBatchDetail(idx);
+
   card.innerHTML = `
     <div style="aspect-ratio:1;overflow:hidden;position:relative">
       <img src="${item.images[0]}" style="width:100%;height:100%;object-fit:cover">
       <div style="position:absolute;top:6px;left:6px;background:rgba(0,194,124,0.9);color:#fff;font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px">${idx+1}</div>
+      <div style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.7);color:#fff;font-size:10px;padding:2px 8px;border-radius:20px">👁 4 ракурса</div>
     </div>
     <div style="padding:8px 10px">
-      <div style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:6px" title="${item.name}">${item.name}</div>
-      <div style="display:flex;gap:3px;margin-bottom:8px">
-        ${item.images.map((url,j) => `<img src="${url}" style="flex:1;aspect-ratio:1;border-radius:4px;object-fit:cover;cursor:pointer" title="${BATCH_LABELS[j]}" onclick="(function(u,n){const a=document.createElement('a');a.href=u;a.download=n;a.click()})('${url}','${item.name}_${BATCH_LABELS[j]}.png')">`).join('')}
-      </div>
-      <div style="display:flex;gap:5px">
-        <button onclick="downloadSingleBatchItem(${idx})" style="flex:1;padding:5px;background:var(--dark3);border:1px solid var(--border);border-radius:6px;color:var(--text2);font-size:11px;cursor:pointer;font-family:'Golos Text',sans-serif">⬇ 4 фото</button>
-      </div>
+      <div style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${item.name}">${item.name}</div>
+      <div style="font-size:10px;color:var(--text3);margin-top:3px">Нажмите для просмотра</div>
     </div>`;
   grid.appendChild(card);
 
-  const countEl = document.getElementById('batchResultsCount');
-  countEl.textContent = `${grid.children.length} товаров`;
+  document.getElementById('batchResultsCount').textContent = `${grid.children.length} товаров`;
 }
 
 async function downloadSingleBatchItem(idx) {
@@ -1596,35 +1548,64 @@ async function generateViews() {
   btn.innerHTML = '✨ Сгенерировать ещё раз';
 }
 
-// Водяной знак El Dukeni на canvas (каждый ракурс)
-function applyWatermarkOnCanvas(ctx, w, h) {
-  // 1. Диагональный повторяющийся текст
-  ctx.save();
-  ctx.font = 'bold 13px Arial';
+// ─── ФИРМЕННЫЙ ФОН EL DUKENI (белый с паттерном ромбов) ───
+function drawElDukeniBackground(ctx, w, h) {
+  // 1. Белая подложка
   ctx.fillStyle = '#ffffff';
-  ctx.globalAlpha = 0.11;
-  for (let gy = 55; gy < h + 60; gy += 90) {
-    for (let gx = -50; gx < w + 60; gx += 150) {
-      const off = (Math.floor(gy / 90) % 2) * 75;
-      ctx.save();
-      ctx.translate(gx + off, gy);
-      ctx.rotate(-22 * Math.PI / 180);
-      ctx.fillText('El Dukeni', 0, 0);
-      ctx.restore();
+  ctx.fillRect(0, 0, w, h);
+
+  // 2. Паттерн ромбов с логотипом El Dukeni
+  const step = Math.round(w / 7); // ~7 ромбов по ширине
+  const half = step / 2;
+  const fontSize = Math.max(8, Math.round(step * 0.17));
+
+  ctx.save();
+
+  for (let row = 0; row <= h + step; row += step) {
+    const isOdd = (Math.floor(row / step) % 2 === 1);
+    const startX = isOdd ? -half : -step;
+
+    for (let col = startX; col <= w + step; col += step) {
+      const cx = col, cy = row;
+
+      // Контур ромба
+      ctx.beginPath();
+      ctx.moveTo(cx,        cy - half); // верх
+      ctx.lineTo(cx + half, cy);        // право
+      ctx.lineTo(cx,        cy + half); // низ
+      ctx.lineTo(cx - half, cy);        // лево
+      ctx.closePath();
+      ctx.strokeStyle = 'rgba(0,160,100,0.10)';
+      ctx.lineWidth = 0.7;
+      ctx.stroke();
+
+      // Буква "El" внутри ромба
+      ctx.font = `bold ${fontSize}px Arial`;
+      ctx.fillStyle = 'rgba(0,140,90,0.11)';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('El', cx, cy);
     }
   }
+
   ctx.restore();
-  // 2. Цветная полоса снизу
+}
+
+// ─── БРЕНДОВЫЙ ОВЕРЛЕЙ (полоса + текст поверх фото) ───
+function applyWatermarkOnCanvas(ctx, w, h) {
+  // Зелёная полоса снизу
   ctx.save();
-  ctx.globalAlpha = 0.88;
+  ctx.globalAlpha = 0.92;
   ctx.fillStyle = '#00C27C';
-  ctx.fillRect(0, h - 28, w, 28);
+  ctx.fillRect(0, h - 30, w, 30);
   ctx.globalAlpha = 1;
-  ctx.font = 'bold 11px Arial';
+  ctx.font = `bold ${Math.max(10, Math.round(w * 0.022))}px Arial`;
   ctx.fillStyle = '#ffffff';
   ctx.textAlign = 'center';
-  ctx.fillText('E L   D U K E N I', w / 2, h - 10);
+  ctx.textBaseline = 'middle';
+  ctx.fillText('E L   D U K E N I', w / 2, h - 15);
   ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
   ctx.restore();
 }
 
@@ -1641,9 +1622,15 @@ async function splitViewsImage(base64, mime) {
         const canvas = document.createElement('canvas');
         canvas.width = w; canvas.height = h;
         const ctx = canvas.getContext('2d');
-        // Вырезаем квадрант
-        ctx.drawImage(img, cx * w, cy * h, w, h, 0, 0, w, h);
-        // Наносим водяной знак El Dukeni
+        const pad    = Math.round(w * 0.06);
+        const stripH = Math.round(h * 0.07);
+        const prodW  = w - pad * 2;
+        const prodH  = h - pad - stripH;
+        // 1. Фирменный фон с ромбами El Dukeni
+        drawElDukeniBackground(ctx, w, h);
+        // 2. Товар поверх (с отступами — фон виден по краям)
+        ctx.drawImage(img, cx * w, cy * h, w, h, pad, pad, prodW, prodH);
+        // 3. Брендовая полоса снизу
         applyWatermarkOnCanvas(ctx, w, h);
         const dataUrl = canvas.toDataURL('image/png');
         viewsSplitImages.push(dataUrl);
@@ -1683,6 +1670,117 @@ async function downloadAllViews() {
     if (btn) { btn.disabled = false; btn.innerHTML = '⬇️ Скачать все 4 (ZIP)'; }
   }
 }
+// ════════════════════════════════════════
+// ═══  ДЕТАЛЬНЫЙ ПРОСМОТР КАРТОЧКИ  ══════
+// ════════════════════════════════════════
+let batchDetailIdx = -1;
+
+function openBatchDetail(idx) {
+  const item = batchQueue[idx];
+  if (!item || !item.images.length) return;
+  batchDetailIdx = idx;
+
+  // Оригинал
+  const origUrl = URL.createObjectURL(item.file);
+  document.getElementById('detailOrigImg').src = origUrl;
+  document.getElementById('detailProductName').textContent = item.name;
+
+  // 4 ракурса
+  const grid = document.getElementById('detailGrid');
+  grid.innerHTML = '';
+  item.images.forEach((url, j) => {
+    const div = document.createElement('div');
+    div.className = 'batch-detail-img';
+    div.title = `Скачать — ${BATCH_LABELS[j]}`;
+    div.onclick = () => {
+      const a = document.createElement('a');
+      a.href = url; a.download = `${item.name}_${BATCH_LABELS[j]}.png`; a.click();
+    };
+    div.innerHTML = `
+      <img src="${url}" alt="${BATCH_LABELS[j]}">
+      <div class="batch-detail-label">${BATCH_LABELS[j]}</div>
+      <div class="batch-detail-dl">⬇ скачать</div>`;
+    grid.appendChild(div);
+  });
+
+  document.getElementById('batchDetailModal').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeBatchDetail() {
+  document.getElementById('batchDetailModal').style.display = 'none';
+  document.body.style.overflow = '';
+  batchDetailIdx = -1;
+}
+
+async function regenerateBatchItem(idx) {
+  if (idx < 0 || idx >= batchQueue.length) return;
+  closeBatchDetail();
+  // Сбрасываем в очередь
+  batchQueue[idx].status = 'pending';
+  batchQueue[idx].images = [];
+  batchQueue[idx].error  = '';
+  // Убираем старую карточку из сетки
+  const old = document.getElementById(`bcard-${idx}`);
+  if (old) old.remove();
+  // Обновляем элемент очереди
+  const itemEl = document.getElementById(`bitem-${idx}`);
+  if (itemEl) itemEl.remove(); // renderBatchQueue создаст заново
+  renderBatchQueue();
+  updateBatchControls();
+  showToast('Товар добавлен в очередь на повторную генерацию', 'success');
+  await startBatchProcessing();
+}
 </script>
+
+<!-- ═══ МОДАЛ: ДЕТАЛЬНЫЙ ПРОСМОТР КАРТОЧКИ ═══ -->
+<div id="batchDetailModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:999;overflow-y:auto;padding:24px" onclick="if(event.target===this)closeBatchDetail()">
+  <div style="max-width:860px;margin:0 auto;background:var(--dark2);border-radius:16px;border:1px solid var(--border);overflow:hidden">
+
+    <!-- Шапка -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid var(--border)">
+      <div>
+        <div style="font-family:'Unbounded',sans-serif;font-size:15px;font-weight:700;color:var(--text)" id="detailProductName">Товар</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:3px">4 сгенерированных ракурса · кликните на фото чтобы скачать</div>
+      </div>
+      <button onclick="closeBatchDetail()" style="background:var(--dark3);border:1px solid var(--border);color:var(--text2);width:34px;height:34px;border-radius:8px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">✕</button>
+    </div>
+
+    <!-- Контент -->
+    <div style="padding:24px;display:flex;gap:20px">
+      <!-- Оригинал -->
+      <div style="flex-shrink:0">
+        <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Оригинал</div>
+        <div style="width:110px;height:110px;border-radius:10px;overflow:hidden;border:1px solid var(--border);background:var(--dark3)">
+          <img id="detailOrigImg" style="width:100%;height:100%;object-fit:cover">
+        </div>
+        <div style="margin-top:8px;font-size:10px;color:var(--text3);text-align:center">исходное фото</div>
+      </div>
+
+      <!-- 4 ракурса -->
+      <div style="flex:1">
+        <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Готовые карточки с водяным знаком</div>
+        <div class="batch-detail-grid" id="detailGrid"></div>
+      </div>
+    </div>
+
+    <!-- Кнопки -->
+    <div style="padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:10px;align-items:center">
+      <button onclick="downloadSingleBatchItem(batchDetailIdx)"
+        style="flex:1;padding:11px;background:var(--dark3);border:1px solid var(--border);border-radius:9px;color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px">
+        ⬇️ Скачать ZIP (4 фото)
+      </button>
+      <button onclick="regenerateBatchItem(batchDetailIdx)"
+        style="flex:1;padding:11px;background:rgba(227,179,65,0.12);border:1px solid var(--yellow);border-radius:9px;color:var(--yellow);font-size:13px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px">
+        ⟳ Сгенерировать заново
+      </button>
+      <button onclick="closeBatchDetail()"
+        style="padding:11px 18px;background:transparent;border:1px solid var(--border);border-radius:9px;color:var(--text2);font-size:13px;cursor:pointer;font-family:'Golos Text',sans-serif">
+        Закрыть
+      </button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
