@@ -200,31 +200,32 @@
 <header class="header">
   <div class="logo">El Dukeni <span>— Генератор карточек</span></div>
   <div class="tabs">
-    <button class="tab-btn" onclick="switchTab('views')">✨ 4 ракурса</button>
+    <button class="tab-btn" onclick="switchTab('card')">🖼 Карточка</button>
     <button class="tab-btn active" onclick="switchTab('batch')" style="background:linear-gradient(135deg,#00C27C,#009960);color:#fff;border-color:transparent">📦 Пакет×50</button>
+    <button class="tab-btn" onclick="switchTab('twoviews')">✨ 2 ракурса</button>
     <button class="tab-btn" onclick="switchTab('search')">🔍 Поиск фото</button>
   </div>
   <div class="status-dot"><div class="dot"></div> Система активна</div>
 </header>
 
-<!-- ═══ 4 РАКУРСА ═══ -->
-<div class="tab-panel" id="tab-views">
+<!-- ═══ КАРТОЧКА (одно фото) ═══ -->
+<div class="tab-panel" id="tab-card">
   <div class="views-layout">
     <div>
-      <div class="views-upload-zone" id="viewsUploadZone" onclick="document.getElementById('viewsFileInput').click()">
+      <div class="views-upload-zone" id="cardUploadZone" onclick="document.getElementById('cardFileInput').click()">
         <div style="font-size:36px;margin-bottom:10px">📸</div>
         <div style="font-size:14px;font-weight:600;margin-bottom:6px">Загрузите фото товара</div>
         <div style="font-size:12px;color:var(--text2)">Перетащите или <span style="color:var(--green)">нажмите для выбора</span></div>
-        <input type="file" id="viewsFileInput" accept="image/*" style="display:none" onchange="handleViewsFile(this.files[0])">
+        <input type="file" id="cardFileInput" accept="image/*" style="display:none" onchange="handleCardFile(this.files[0])">
       </div>
-      <div class="views-preview" id="viewsPreview">Предпросмотр</div>
+      <div class="views-preview" id="cardPreview">Предпросмотр</div>
       <div style="margin-top:12px">
         <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px">Название товара (необязательно)</div>
-        <input class="hint-input" type="text" id="viewsProductName" placeholder="Например: Наушники Bloody G575...">
+        <input class="hint-input" type="text" id="cardProductName" placeholder="Например: Наушники Bloody G575...">
       </div>
       <div style="margin-top:10px">
         <div style="font-size:11px;color:var(--text3);margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:1px">Категория (для фона)</div>
-        <select id="viewsCategory" style="width:100%;padding:8px 10px;background:var(--dark3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;font-family:'Golos Text',sans-serif">
+        <select id="cardCategory" style="width:100%;padding:8px 10px;background:var(--dark3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;font-family:'Golos Text',sans-serif">
           <option value="">Определить автоматически</option>
           <option value="Электроника">Электроника</option>
           <option value="Одежда и обувь">Одежда и обувь</option>
@@ -245,27 +246,25 @@
           <option value="Прочее">Прочее</option>
         </select>
       </div>
-      <button class="btn-primary" id="viewsGenBtn" onclick="generateViews()" disabled style="width:100%;margin-top:12px;justify-content:center">
-        ✨ Сгенерировать 4 ракурса
+      <button class="btn-primary" id="cardGenBtn" onclick="generateCard()" disabled style="width:100%;margin-top:12px;justify-content:center">
+        🖼 Сгенерировать карточку
       </button>
       <div style="margin-top:10px;background:var(--dark2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--text2)">
-        💡 Стоимость: <span style="color:var(--green);font-weight:600">~$0.078 (~40 тг)</span> за 4 карточки (2 вызова, каждая 1024×512)
+        💡 Стоимость: <span style="color:var(--green);font-weight:600">~$0.039 (~20 тг)</span> за карточку
       </div>
     </div>
     <div>
-      <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Предпросмотр (пара 1)</div>
-      <div class="views-result-box" id="viewsResultBox">
-        <div id="viewsLoading" class="views-loading" style="display:none">
+      <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Результат</div>
+      <div class="views-result-box" id="cardResultBox">
+        <div id="cardLoading" class="views-loading" style="display:none">
           <div class="spinner" style="width:36px;height:36px;border-width:3px"></div>
-          <div class="views-loading-text">Gemini генерирует 4 ракурса...<br><span style="font-size:11px;opacity:0.6">20–35 секунд (2 запроса)</span></div>
+          <div class="views-loading-text">Gemini генерирует карточку...<br><span style="font-size:11px;opacity:0.6">15–25 секунд</span></div>
         </div>
-        <img id="viewsResultImg" src="" style="display:none">
-        <div id="viewsEmpty" style="color:var(--text3);font-size:13px;text-align:center;padding:20px">Загрузите фото<br>и нажмите генерировать</div>
+        <img id="cardResultImg" src="" style="display:none;width:100%;border-radius:8px">
+        <div id="cardEmpty" style="color:var(--text3);font-size:13px;text-align:center;padding:20px">Загрузите фото<br>и нажмите генерировать</div>
       </div>
-      <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin:12px 0 8px">Разделить на 4</div>
-      <div class="split-grid" id="viewsSplitGrid"></div>
-      <div id="viewsActions" style="display:none;gap:8px;margin-top:12px">
-        <button onclick="downloadAllViews()" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:9px;background:var(--dark3);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px">⬇️ Скачать все 4 (ZIP)</button>
+      <div id="cardActions" style="display:none;gap:8px;margin-top:12px">
+        <button onclick="downloadCard()" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:9px;background:var(--dark3);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px">⬇️ Скачать карточку</button>
       </div>
     </div>
   </div>
@@ -415,6 +414,70 @@
   </div>
 </div>
 
+<!-- ═══ 2 РАКУРСА ═══ -->
+<div class="tab-panel" id="tab-twoviews">
+  <div class="views-layout">
+    <div>
+      <div class="views-upload-zone" id="twoUploadZone" onclick="document.getElementById('twoFileInput').click()">
+        <div style="font-size:36px;margin-bottom:10px">📸</div>
+        <div style="font-size:14px;font-weight:600;margin-bottom:6px">Загрузите фото товара</div>
+        <div style="font-size:12px;color:var(--text2)">Перетащите или <span style="color:var(--green)">нажмите для выбора</span></div>
+        <input type="file" id="twoFileInput" accept="image/*" style="display:none" onchange="handleTwoFile(this.files[0])">
+      </div>
+      <div class="views-preview" id="twoPreview">Предпросмотр</div>
+      <div style="margin-top:12px">
+        <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px">Название товара (необязательно)</div>
+        <input class="hint-input" type="text" id="twoProductName" placeholder="Например: Наушники Bloody G575...">
+      </div>
+      <div style="margin-top:10px">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:1px">Категория (для фона)</div>
+        <select id="twoCategory" style="width:100%;padding:8px 10px;background:var(--dark3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;font-family:'Golos Text',sans-serif">
+          <option value="">Определить автоматически</option>
+          <option value="Электроника">Электроника</option>
+          <option value="Одежда и обувь">Одежда и обувь</option>
+          <option value="Косметика и парфюмерия">Косметика и парфюмерия</option>
+          <option value="Продукты питания">Продукты питания</option>
+          <option value="Товары для дома">Товары для дома</option>
+          <option value="Игрушки">Игрушки</option>
+          <option value="Спорт">Спорт</option>
+          <option value="Ювелирные украшения">Ювелирные украшения</option>
+          <option value="Мебель">Мебель</option>
+          <option value="Посуда и кухня">Посуда и кухня</option>
+          <option value="Текстиль">Текстиль и постельное</option>
+          <option value="Инструменты">Инструменты</option>
+          <option value="Автотовары">Автотовары</option>
+          <option value="Детские товары">Детские товары</option>
+          <option value="Книги и канцтовары">Книги и канцтовары</option>
+          <option value="Аптека и здоровье">Аптека и здоровье</option>
+          <option value="Прочее">Прочее</option>
+        </select>
+      </div>
+      <button class="btn-primary" id="twoGenBtn" onclick="generateTwoViews()" disabled style="width:100%;margin-top:12px;justify-content:center">
+        ✨ Сгенерировать 2 ракурса
+      </button>
+      <div style="margin-top:10px;background:var(--dark2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--text2)">
+        💡 Стоимость: <span style="color:var(--green);font-weight:600">~$0.039 (~20 тг)</span> за 2 карточки (Спереди + Сзади)
+      </div>
+    </div>
+    <div>
+      <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Предпросмотр 1×2</div>
+      <div class="views-result-box" id="twoResultBox">
+        <div id="twoLoading" class="views-loading" style="display:none">
+          <div class="spinner" style="width:36px;height:36px;border-width:3px"></div>
+          <div class="views-loading-text">Gemini генерирует 2 ракурса...<br><span style="font-size:11px;opacity:0.6">15–25 секунд</span></div>
+        </div>
+        <img id="twoResultImg" src="" style="display:none">
+        <div id="twoEmpty" style="color:var(--text3);font-size:13px;text-align:center;padding:20px">Загрузите фото<br>и нажмите генерировать</div>
+      </div>
+      <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin:12px 0 8px">Разделить на 2</div>
+      <div class="split-grid" id="twoSplitGrid"></div>
+      <div id="twoActions" style="display:none;gap:8px;margin-top:12px">
+        <button onclick="downloadTwoViews()" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:9px;background:var(--dark3);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px">⬇️ Скачать 2 карточки (ZIP)</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ═══ ПОИСК ФОТО ═══ -->
 <div class="tab-panel" id="tab-search">
   <div style="max-width:1000px;margin:0 auto;padding:32px 24px">
@@ -524,9 +587,14 @@ const CAT_COLORS = {
 function switchTab(tab) {
   document.querySelectorAll('.tab-btn').forEach((b,i) => {
     b.classList.toggle('active',
-      (i===0&&tab==='views')||(i===1&&tab==='batch')||(i===2&&tab==='search'));
+      (i===0&&tab==='card')||(i===1&&tab==='batch')||(i===2&&tab==='twoviews')||(i===3&&tab==='search'));
+    if (i===1) {
+      b.style.background = tab==='batch' ? 'linear-gradient(135deg,#00C27C,#009960)' : '';
+      b.style.color = tab==='batch' ? '#fff' : '';
+      b.style.borderColor = tab==='batch' ? 'transparent' : '';
+    }
   });
-  ['views','batch','search'].forEach(t =>
+  ['card','batch','twoviews','search'].forEach(t =>
     document.getElementById(`tab-${t}`).classList.toggle('active', tab===t)
   );
 }
@@ -1301,27 +1369,23 @@ function updateBatchProgress() {
 }
 
 // Разделить 2×2 изображение на 4 карточки: фон El Dukeni + товар + брендовая полоса
-// Разбивает 1×2 вертикальное изображение на верхнюю и нижнюю половины
+// Разбивает 2×2 изображение на 4 равных квадранта (для Пакет×50)
 function splitBatchImage(base64, mime) {
   return new Promise(res => {
     const img = new Image();
     img.onload = () => {
-      const w = img.width, h = img.height / 2; // полная ширина, половина высоты
+      const w = img.width / 2, h = img.height / 2;
       const results = [];
-      // Товар занимает 88% площади, по 6% поля со всех сторон
       const pad    = Math.round(w * 0.06);
-      const stripH = Math.round(h * 0.07); // высота брендовой полосы
+      const stripH = Math.round(h * 0.07);
       const prodW  = w - pad * 2;
-      const prodH  = h - pad - stripH; // снизу полоса, сверху/бокам — поля с паттерном
-      [0, 1].forEach(cy => {
+      const prodH  = h - pad - stripH;
+      [[0,0],[1,0],[0,1],[1,1]].forEach(([cx, cy]) => {
         const c = document.createElement('canvas');
         c.width = w; c.height = h;
         const ctx = c.getContext('2d');
-        // 1. Фирменный фон с ромбами
         drawElDukeniBackground(ctx, w, h);
-        // 2. Товар поверх фона (верхняя или нижняя половина оригинала)
-        ctx.drawImage(img, 0, cy * h, w, h, pad, pad, prodW, prodH);
-        // 3. Брендовая полоса снизу
+        ctx.drawImage(img, cx*w, cy*h, w, h, pad, pad, prodW, prodH);
         applyWatermarkOnCanvas(ctx, w, h);
         results.push(c.toDataURL('image/png'));
       });
@@ -1414,38 +1478,28 @@ async function startBatchProcessing() {
 
     try {
       const b64 = await getB64(batchQueue[i].file);
-      document.getElementById('batchCurrentStep').textContent = 'Gemini генерирует 4 ракурса (2 запроса параллельно)...';
+      document.getElementById('batchCurrentStep').textContent = 'Gemini генерирует 4 ракурса...';
 
-      const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SB_KEY}`, 'apikey': SB_KEY };
-      const payload = { photo_base64: b64, photo_mime: batchQueue[i].file.type, product_name: '', category };
+      const r = await fetch(VIEWS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SB_KEY}`, 'apikey': SB_KEY },
+        body: JSON.stringify({ photo_base64: b64, photo_mime: batchQueue[i].file.type, product_name: '', category, mode: 'four_views' })
+      });
+      const data = await r.json();
+      if (!data.success) throw new Error(data.error || 'Ошибка генерации');
 
-      // 2 параллельных вызова: пара 1 (Спереди+Сзади) и пара 2 (3/4+Детали)
-      const [r1, r2] = await Promise.all([
-        fetch(VIEWS_URL, { method: 'POST', headers, body: JSON.stringify({ ...payload, view_pair: 1 }) }),
-        fetch(VIEWS_URL, { method: 'POST', headers, body: JSON.stringify({ ...payload, view_pair: 2 }) }),
-      ]);
-      const data1 = await r1.json();
-      const data2 = await r2.json();
-      if (!data1.success) throw new Error(data1.error || 'Ошибка генерации (пара 1)');
-      if (!data2.success) throw new Error(data2.error || 'Ошибка генерации (пара 2)');
+      const mime = data.mime || 'image/png';
 
-      const mime1 = data1.mime || 'image/png';
-      const mime2 = data2.mime || 'image/png';
-
-      // Показать первую пару как предпросмотр
+      // Показать результат 2×2
       document.getElementById('batchCurrentSpinner').style.display = 'none';
       const resultImg = document.getElementById('batchCurrentResult');
-      resultImg.src = `data:${mime1};base64,${data1.image_base64}`;
+      resultImg.src = `data:${mime};base64,${data.image_base64}`;
       resultImg.style.display = 'block';
 
       document.getElementById('batchCurrentStep').textContent = 'Разделяю и добавляю водяной знак...';
 
-      // Разбить обе пары на 4 карточки с водяным знаком
-      const [pair1, pair2] = await Promise.all([
-        splitBatchImage(data1.image_base64, mime1),
-        splitBatchImage(data2.image_base64, mime2),
-      ]);
-      const images = [...pair1, ...pair2];
+      // Разбить на 4 с водяным знаком
+      const images = await splitBatchImage(data.image_base64, mime);
       if (!images.length) throw new Error('Не удалось разделить изображение');
 
       batchQueue[i].status = 'done';
@@ -1532,20 +1586,36 @@ async function downloadBatchZip() {
 }
 
 // ─── 4 РАКУРСА ───
-let viewsFile = null;
-let viewsSplitImages = [];
+let cardFile = null;
+let cardImageUrl = '';
+let twoFile = null;
+let twoSplitImages = [];
 
-const vZone = document.getElementById('viewsUploadZone');
-vZone.addEventListener('dragover', e=>{e.preventDefault();vZone.classList.add('drag');});
-vZone.addEventListener('dragleave', ()=>vZone.classList.remove('drag'));
-vZone.addEventListener('drop', e=>{e.preventDefault();vZone.classList.remove('drag');handleViewsFile(e.dataTransfer.files[0]);});
+const cardZone = document.getElementById('cardUploadZone');
+cardZone.addEventListener('dragover', e=>{e.preventDefault();cardZone.classList.add('drag');});
+cardZone.addEventListener('dragleave', ()=>cardZone.classList.remove('drag'));
+cardZone.addEventListener('drop', e=>{e.preventDefault();cardZone.classList.remove('drag');handleCardFile(e.dataTransfer.files[0]);});
 
-function handleViewsFile(file) {
+const twoZone = document.getElementById('twoUploadZone');
+twoZone.addEventListener('dragover', e=>{e.preventDefault();twoZone.classList.add('drag');});
+twoZone.addEventListener('dragleave', ()=>twoZone.classList.remove('drag'));
+twoZone.addEventListener('drop', e=>{e.preventDefault();twoZone.classList.remove('drag');handleTwoFile(e.dataTransfer.files[0]);});
+
+function handleCardFile(file) {
   if (!file || !file.type.startsWith('image/')) return;
-  viewsFile = file;
+  cardFile = file;
   const url = URL.createObjectURL(file);
-  document.getElementById('viewsPreview').innerHTML = `<img src="${url}">`;
-  document.getElementById('viewsGenBtn').disabled = false;
+  document.getElementById('cardPreview').innerHTML = `<img src="${url}">`;
+  document.getElementById('cardGenBtn').disabled = false;
+  showToast('Фото загружено!', 'success');
+}
+
+function handleTwoFile(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+  twoFile = file;
+  const url = URL.createObjectURL(file);
+  document.getElementById('twoPreview').innerHTML = `<img src="${url}">`;
+  document.getElementById('twoGenBtn').disabled = false;
   showToast('Фото загружено!', 'success');
 }
 
@@ -1557,50 +1627,151 @@ function getB64(file) {
   });
 }
 
-async function generateViews() {
-  if (!viewsFile) return;
-  const btn = document.getElementById('viewsGenBtn');
+async function generateCard() {
+  if (!cardFile) return;
+  const btn = document.getElementById('cardGenBtn');
   btn.disabled = true;
   btn.innerHTML = '<div class="spinner" style="width:14px;height:14px;border-width:2px"></div> Генерирую...';
-  document.getElementById('viewsLoading').style.display = 'flex';
-  document.getElementById('viewsResultImg').style.display = 'none';
-  document.getElementById('viewsEmpty').style.display = 'none';
-  document.getElementById('viewsSplitGrid').innerHTML = '';
-  document.getElementById('viewsActions').style.display = 'none';
+  document.getElementById('cardLoading').style.display = 'flex';
+  document.getElementById('cardResultImg').style.display = 'none';
+  document.getElementById('cardEmpty').style.display = 'none';
+  document.getElementById('cardActions').style.display = 'none';
 
   try {
-    const b64 = await getB64(viewsFile);
-    const name = document.getElementById('viewsProductName').value.trim();
-    const category = document.getElementById('viewsCategory').value || currentSeller?.category || '';
-    const headers = { 'Content-Type':'application/json', 'Authorization':`Bearer ${SB_KEY}`, 'apikey':SB_KEY };
-    const payload = { photo_base64:b64, photo_mime:viewsFile.type, product_name:name, category };
-
-    // 2 параллельных вызова: пара 1 (Спереди+Сзади) и пара 2 (3/4+Детали)
-    const [r1, r2] = await Promise.all([
-      fetch(VIEWS_URL, { method:'POST', headers, body: JSON.stringify({ ...payload, view_pair: 1 }) }),
-      fetch(VIEWS_URL, { method:'POST', headers, body: JSON.stringify({ ...payload, view_pair: 2 }) }),
-    ]);
-    const data1 = await r1.json();
-    const data2 = await r2.json();
-    if (!data1.success) throw new Error(data1.error || 'Ошибка');
-    if (!data2.success) throw new Error(data2.error || 'Ошибка (пара 2)');
-    const mime1 = data1.mime || 'image/png';
-    const mime2 = data2.mime || 'image/png';
-    // Показать предпросмотр первой пары
-    const img = document.getElementById('viewsResultImg');
-    img.src = `data:${mime1};base64,${data1.image_base64}`;
+    const b64 = await getB64(cardFile);
+    const name = document.getElementById('cardProductName').value.trim();
+    const category = document.getElementById('cardCategory').value;
+    const r = await fetch(VIEWS_URL, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`,'apikey':SB_KEY},
+      body: JSON.stringify({ photo_base64:b64, photo_mime:cardFile.type, product_name:name, category, mode:'single' })
+    });
+    const data = await r.json();
+    if (!data.success) throw new Error(data.error || 'Ошибка');
+    const mime = data.mime || 'image/png';
+    document.getElementById('cardLoading').style.display = 'none';
+    // Применить фирменный фон + водяной знак через Canvas
+    cardImageUrl = await applyCardCanvas(data.image_base64, mime);
+    const img = document.getElementById('cardResultImg');
+    img.src = cardImageUrl;
     img.style.display = 'block';
-    document.getElementById('viewsLoading').style.display = 'none';
-    await splitViewsImage(data1.image_base64, mime1, data2.image_base64, mime2);
-    document.getElementById('viewsActions').style.display = 'flex';
-    showToast(`Готово! 4 ракурса с водяным знаком ✅${data1.model_used ? ' (' + data1.model_used.split('-').slice(0,3).join('-') + ')' : ''}`, 'success');
+    document.getElementById('cardActions').style.display = 'flex';
+    showToast(`Карточка готова ✅${data.model_used ? ' (' + data.model_used.split('-').slice(0,3).join('-') + ')' : ''}`, 'success');
   } catch(e) {
-    document.getElementById('viewsLoading').style.display = 'none';
-    document.getElementById('viewsEmpty').style.display = 'block';
+    document.getElementById('cardLoading').style.display = 'none';
+    document.getElementById('cardEmpty').style.display = 'block';
+    showToast('Ошибка: ' + e.message, 'error');
+  }
+  btn.disabled = false;
+  btn.innerHTML = '🖼 Сгенерировать ещё раз';
+}
+
+function downloadCard() {
+  if (!cardImageUrl) return;
+  const a = document.createElement('a');
+  a.href = cardImageUrl;
+  a.download = 'eldukeni_card.png';
+  a.click();
+}
+
+// Применяет El Dukeni фон + водяной знак к одиночному изображению
+function applyCardCanvas(base64, mime) {
+  return new Promise(res => {
+    const img = new Image();
+    img.onload = () => {
+      const w = img.width, h = img.height;
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      const ctx = c.getContext('2d');
+      const pad    = Math.round(w * 0.06);
+      const stripH = Math.round(h * 0.07);
+      const prodW  = w - pad * 2;
+      const prodH  = h - pad - stripH;
+      drawElDukeniBackground(ctx, w, h);
+      ctx.drawImage(img, 0, 0, w, h, pad, pad, prodW, prodH);
+      applyWatermarkOnCanvas(ctx, w, h);
+      res(c.toDataURL('image/png'));
+    };
+    img.onerror = () => res('');
+    img.src = `data:${mime};base64,${base64}`;
+  });
+}
+
+async function generateTwoViews() {
+  if (!twoFile) return;
+  const btn = document.getElementById('twoGenBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner" style="width:14px;height:14px;border-width:2px"></div> Генерирую...';
+  document.getElementById('twoLoading').style.display = 'flex';
+  document.getElementById('twoResultImg').style.display = 'none';
+  document.getElementById('twoEmpty').style.display = 'none';
+  document.getElementById('twoSplitGrid').innerHTML = '';
+  document.getElementById('twoActions').style.display = 'none';
+
+  try {
+    const b64 = await getB64(twoFile);
+    const name = document.getElementById('twoProductName').value.trim();
+    const category = document.getElementById('twoCategory').value;
+    const r = await fetch(VIEWS_URL, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`,'apikey':SB_KEY},
+      body: JSON.stringify({ photo_base64:b64, photo_mime:twoFile.type, product_name:name, category, mode:'two_views' })
+    });
+    const data = await r.json();
+    if (!data.success) throw new Error(data.error || 'Ошибка');
+    const mime = data.mime || 'image/png';
+    const img = document.getElementById('twoResultImg');
+    img.src = `data:${mime};base64,${data.image_base64}`;
+    img.style.display = 'block';
+    document.getElementById('twoLoading').style.display = 'none';
+    await splitTwoViews(data.image_base64, mime);
+    document.getElementById('twoActions').style.display = 'flex';
+    showToast(`Готово! 2 ракурса с водяным знаком ✅${data.model_used ? ' (' + data.model_used.split('-').slice(0,3).join('-') + ')' : ''}`, 'success');
+  } catch(e) {
+    document.getElementById('twoLoading').style.display = 'none';
+    document.getElementById('twoEmpty').style.display = 'block';
     showToast('Ошибка: ' + e.message, 'error');
   }
   btn.disabled = false;
   btn.innerHTML = '✨ Сгенерировать ещё раз';
+}
+
+async function splitTwoViews(base64, mime) {
+  const labels = ['Спереди', 'Сзади'];
+  twoSplitImages = await splitOnePairToCards(base64, mime);
+  const grid = document.getElementById('twoSplitGrid');
+  grid.innerHTML = '';
+  twoSplitImages.forEach((dataUrl, i) => {
+    const div = document.createElement('div');
+    div.className = 'split-item';
+    div.innerHTML = `<img src="${dataUrl}"><div class="split-label">${labels[i]}</div>`;
+    div.onclick = () => { const a = document.createElement('a'); a.href = dataUrl; a.download = `eldukeni_${labels[i]}.png`; a.click(); };
+    grid.appendChild(div);
+  });
+}
+
+async function downloadTwoViews() {
+  if (!twoSplitImages.length) return;
+  const labels = ['Спереди', 'Сзади'];
+  const btn = document.querySelector('#twoActions button');
+  if (btn) { btn.disabled = true; btn.textContent = 'Упаковываю ZIP...'; }
+  try {
+    const zip = new JSZip();
+    twoSplitImages.forEach((url, i) => {
+      zip.file(`eldukeni_${labels[i]}.png`, url.split(',')[1], { base64: true });
+    });
+    const content = await zip.generateAsync({ type: 'blob' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(content);
+    a.download = 'eldukeni_2_ракурса.zip';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    showToast('ZIP скачан — 2 ракурса с водяным знаком ✅', 'success');
+  } catch(e) {
+    showToast('Ошибка ZIP: ' + e.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '⬇️ Скачать 2 карточки (ZIP)'; }
+  }
 }
 
 // ─── ФИРМЕННЫЙ ФОН EL DUKENI (белый с паттерном ромбов) ───
@@ -1707,49 +1878,6 @@ function splitOnePairToCards(base64, mime) {
   });
 }
 
-// Принимает 2 пары: пара1 = (Спереди+Сзади), пара2 = (3/4+Детали)
-async function splitViewsImage(base64_1, mime1, base64_2, mime2) {
-  const labels = ['Спереди', 'Сзади', '3/4 угол', 'Детали'];
-  const [pair1, pair2] = await Promise.all([
-    splitOnePairToCards(base64_1, mime1),
-    splitOnePairToCards(base64_2, mime2),
-  ]);
-  viewsSplitImages = [...pair1, ...pair2];
-  const grid = document.getElementById('viewsSplitGrid');
-  grid.innerHTML = '';
-  viewsSplitImages.forEach((dataUrl, i) => {
-    const div = document.createElement('div');
-    div.className = 'split-item';
-    div.innerHTML = `<img src="${dataUrl}"><div class="split-label">${labels[i]}</div>`;
-    div.onclick = () => { const a = document.createElement('a'); a.href = dataUrl; a.download = `eldukeni_${labels[i]}.png`; a.click(); };
-    grid.appendChild(div);
-  });
-}
-
-async function downloadAllViews() {
-  if (!viewsSplitImages.length) return;
-  const labels = ['Спереди', 'Сзади', '3/4_угол', 'Детали'];
-  const btn = document.querySelector('#viewsActions button');
-  if (btn) { btn.disabled = true; btn.textContent = 'Упаковываю ZIP...'; }
-  try {
-    const zip = new JSZip();
-    viewsSplitImages.forEach((url, i) => {
-      const b64 = url.split(',')[1];
-      zip.file(`eldukeni_${labels[i]}.png`, b64, { base64: true });
-    });
-    const content = await zip.generateAsync({ type: 'blob' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(content);
-    a.download = 'eldukeni_4_ракурса.zip';
-    a.click();
-    URL.revokeObjectURL(a.href);
-    showToast('ZIP скачан — 4 ракурса с водяным знаком ✅', 'success');
-  } catch(e) {
-    showToast('Ошибка ZIP: ' + e.message, 'error');
-  } finally {
-    if (btn) { btn.disabled = false; btn.innerHTML = '⬇️ Скачать все 4 (ZIP)'; }
-  }
-}
 // ════════════════════════════════════════
 // ═══  ДЕТАЛЬНЫЙ ПРОСМОТР КАРТОЧКИ  ══════
 // ════════════════════════════════════════
