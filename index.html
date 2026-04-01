@@ -1376,10 +1376,10 @@ function splitBatchImage(base64, mime) {
     img.onload = () => {
       const w = img.width / 2, h = img.height / 2;
       const results = [];
-      const pad    = Math.round(w * 0.06);
+      const pad    = 0;
       const stripH = Math.round(h * 0.07);
-      const prodW  = w - pad * 2;
-      const prodH  = h - pad - stripH;
+      const prodW  = w;
+      const prodH  = h - stripH;
       [[0,0],[1,0],[0,1],[1,1]].forEach(([cx, cy]) => {
         const c = document.createElement('canvas');
         c.width = w; c.height = h;
@@ -1683,10 +1683,10 @@ function applyCardCanvas(base64, mime) {
       const c = document.createElement('canvas');
       c.width = w; c.height = h;
       const ctx = c.getContext('2d');
-      const pad    = Math.round(w * 0.06);
+      const pad    = 0;
       const stripH = Math.round(h * 0.07);
-      const prodW  = w - pad * 2;
-      const prodH  = h - pad - stripH;
+      const prodW  = w;
+      const prodH  = h - stripH;
       drawElDukeniBackground(ctx, w, h);
       ctx.drawImage(img, 0, 0, w, h, pad, pad, prodW, prodH);
       applyWatermarkOnCanvas(ctx, w, h);
@@ -1858,10 +1858,10 @@ function splitOnePairToCards(base64, mime) {
     img.onload = () => {
       const w = img.width, h = img.height / 2; // полная ширина, половина высоты
       const results = [];
-      const pad    = Math.round(w * 0.06);
+      const pad    = 0;
       const stripH = Math.round(h * 0.07);
-      const prodW  = w - pad * 2;
-      const prodH  = h - pad - stripH;
+      const prodW  = w;
+      const prodH  = h - stripH;
       [0, 1].forEach(cy => {
         const canvas = document.createElement('canvas');
         canvas.width = w; canvas.height = h;
