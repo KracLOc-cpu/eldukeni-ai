@@ -265,7 +265,8 @@
         <div id="cardEmpty" style="color:var(--text3);font-size:13px;text-align:center;padding:20px">Загрузите фото<br>и нажмите генерировать</div>
       </div>
       <div id="cardActions" style="display:none;gap:8px;margin-top:12px">
-        <button onclick="downloadCard()" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:9px;background:var(--dark3);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px">⬇️ Скачать карточку</button>
+        <button onclick="downloadCard()" style="flex:1;padding:10px;border:1px solid var(--border);border-radius:9px;background:var(--dark3);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px">⬇️ Карточка</button>
+        <button onclick="downloadCardOriginal()" style="flex:1;padding:10px;border:1px solid var(--green);border-radius:9px;background:transparent;color:var(--green);font-size:13px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px">⬇️ Оригинал</button>
       </div>
     </div>
   </div>
@@ -1380,13 +1381,14 @@ function splitBatchImage(base64, mime) {
       const srcW = img.width / 2, srcH = img.height / 2;
       const S = 1000;
       const results = [];
-      const stripH = Math.round(S * 0.07);
+      const cropSide = Math.min(srcW, srcH);
+      const cropOx = (srcW - cropSide) / 2, cropOy = (srcH - cropSide) / 2;
       [[0,0],[1,0],[0,1],[1,1]].forEach(([cx, cy]) => {
         const c = document.createElement('canvas');
         c.width = S; c.height = S;
         const ctx = c.getContext('2d');
         drawElDukeniBackground(ctx, S, S);
-        ctx.drawImage(img, cx*srcW, cy*srcH, srcW, srcH, 0, 0, S, S);
+        ctx.drawImage(img, cx*srcW + cropOx, cy*srcH + cropOy, cropSide, cropSide, 0, 0, S, S);
         applyWatermarkOnCanvas(ctx, S, S);
         results.push(c.toDataURL('image/png'));
       });
@@ -1589,6 +1591,8 @@ async function downloadBatchZip() {
 // ─── 4 РАКУРСА ───
 let cardFile = null;
 let cardImageUrl = '';
+let cardOriginalB64 = '';
+let cardOriginalMime = '';
 let twoFile = null;
 let twoSplitImages = [];
 
@@ -1650,6 +1654,8 @@ async function generateCard() {
     const data = await r.json();
     if (!data.success) throw new Error(data.error || 'Ошибка');
     const mime = data.mime || 'image/png';
+    cardOriginalB64 = data.image_base64;
+    cardOriginalMime = mime;
     document.getElementById('cardLoading').style.display = 'none';
     // Применить фирменный фон + водяной знак через Canvas
     cardImageUrl = await applyCardCanvas(data.image_base64, mime);
@@ -1675,6 +1681,15 @@ function downloadCard() {
   a.click();
 }
 
+function downloadCardOriginal() {
+  if (!cardOriginalB64) return;
+  const ext = cardOriginalMime.includes('png') ? 'png' : 'jpg';
+  const a = document.createElement('a');
+  a.href = `data:${cardOriginalMime};base64,${cardOriginalB64}`;
+  a.download = `gemini_original.${ext}`;
+  a.click();
+}
+
 // Применяет El Dukeni фон + водяной знак к одиночному изображению
 function applyCardCanvas(base64, mime) {
   return new Promise(res => {
@@ -1684,9 +1699,10 @@ function applyCardCanvas(base64, mime) {
       const c = document.createElement('canvas');
       c.width = S; c.height = S;
       const ctx = c.getContext('2d');
-      const stripH = Math.round(S * 0.07);
+      const cropSide = Math.min(img.width, img.height);
+      const cropOx = (img.width - cropSide) / 2, cropOy = (img.height - cropSide) / 2;
       drawElDukeniBackground(ctx, S, S);
-      ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, S, S);
+      ctx.drawImage(img, cropOx, cropOy, cropSide, cropSide, 0, 0, S, S);
       applyWatermarkOnCanvas(ctx, S, S);
       res(c.toDataURL('image/png'));
     };
@@ -1843,13 +1859,14 @@ function splitOnePairToCards(base64, mime) {
       const srcW = img.width, srcH = img.height / 2;
       const S = 1000;
       const results = [];
-      const stripH = Math.round(S * 0.07);
+      const cropSide = Math.min(srcW, srcH);
+      const cropOx = (srcW - cropSide) / 2, cropOy = (srcH - cropSide) / 2;
       [0, 1].forEach(cy => {
         const canvas = document.createElement('canvas');
         canvas.width = S; canvas.height = S;
         const ctx = canvas.getContext('2d');
         drawElDukeniBackground(ctx, S, S);
-        ctx.drawImage(img, 0, cy * srcH, srcW, srcH, 0, 0, S, S);
+        ctx.drawImage(img, cropOx, cy * srcH + cropOy, cropSide, cropSide, 0, 0, S, S);
         applyWatermarkOnCanvas(ctx, S, S);
         results.push(canvas.toDataURL('image/png'));
       });
