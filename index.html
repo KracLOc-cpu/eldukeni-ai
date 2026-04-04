@@ -1374,19 +1374,17 @@ function splitBatchImage(base64, mime) {
   return new Promise(res => {
     const img = new Image();
     img.onload = () => {
-      const w = img.width / 2, h = img.height / 2;
+      const srcW = img.width / 2, srcH = img.height / 2;
+      const S = 1000;
       const results = [];
-      const pad    = 0;
-      const stripH = Math.round(h * 0.07);
-      const prodW  = w;
-      const prodH  = h - stripH;
+      const stripH = Math.round(S * 0.07);
       [[0,0],[1,0],[0,1],[1,1]].forEach(([cx, cy]) => {
         const c = document.createElement('canvas');
-        c.width = w; c.height = h;
+        c.width = S; c.height = S;
         const ctx = c.getContext('2d');
-        drawElDukeniBackground(ctx, w, h);
-        ctx.drawImage(img, cx*w, cy*h, w, h, pad, pad, prodW, prodH);
-        applyWatermarkOnCanvas(ctx, w, h);
+        drawElDukeniBackground(ctx, S, S);
+        ctx.drawImage(img, cx*srcW, cy*srcH, srcW, srcH, 0, 0, S, S - stripH);
+        applyWatermarkOnCanvas(ctx, S, S);
         results.push(c.toDataURL('image/png'));
       });
       res(results);
@@ -1679,17 +1677,14 @@ function applyCardCanvas(base64, mime) {
   return new Promise(res => {
     const img = new Image();
     img.onload = () => {
-      const w = img.width, h = img.height;
+      const S = 1000;
       const c = document.createElement('canvas');
-      c.width = w; c.height = h;
+      c.width = S; c.height = S;
       const ctx = c.getContext('2d');
-      const pad    = 0;
-      const stripH = Math.round(h * 0.07);
-      const prodW  = w;
-      const prodH  = h - stripH;
-      drawElDukeniBackground(ctx, w, h);
-      ctx.drawImage(img, 0, 0, w, h, pad, pad, prodW, prodH);
-      applyWatermarkOnCanvas(ctx, w, h);
+      const stripH = Math.round(S * 0.07);
+      drawElDukeniBackground(ctx, S, S);
+      ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, S, S - stripH);
+      applyWatermarkOnCanvas(ctx, S, S);
       res(c.toDataURL('image/png'));
     };
     img.onerror = () => res('');
@@ -1830,24 +1825,10 @@ function applyWatermarkOnCanvas(ctx, w, h) {
       ctx.save();
       ctx.translate(gx + off, gy);
       ctx.rotate(-22 * Math.PI / 180);
-      ctx.fillText('El Dukeni', 0, 0);
+      ctx.fillText('El', 0, 0);
       ctx.restore();
     }
   }
-  ctx.restore();
-  // 2. Зелёная полоса снизу
-  ctx.save();
-  ctx.globalAlpha = 0.92;
-  ctx.fillStyle = '#00C27C';
-  ctx.fillRect(0, h - 30, w, 30);
-  ctx.globalAlpha = 1;
-  ctx.font = `bold ${Math.max(10, Math.round(w * 0.022))}px Arial`;
-  ctx.fillStyle = '#ffffff';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('E L   D U K E N I', w / 2, h - 15);
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'alphabetic';
   ctx.restore();
 }
 
@@ -1856,19 +1837,17 @@ function splitOnePairToCards(base64, mime) {
   return new Promise(res => {
     const img = new Image();
     img.onload = () => {
-      const w = img.width, h = img.height / 2; // полная ширина, половина высоты
+      const srcW = img.width, srcH = img.height / 2;
+      const S = 1000;
       const results = [];
-      const pad    = 0;
-      const stripH = Math.round(h * 0.07);
-      const prodW  = w;
-      const prodH  = h - stripH;
+      const stripH = Math.round(S * 0.07);
       [0, 1].forEach(cy => {
         const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
+        canvas.width = S; canvas.height = S;
         const ctx = canvas.getContext('2d');
-        drawElDukeniBackground(ctx, w, h);
-        ctx.drawImage(img, 0, cy * h, w, h, pad, pad, prodW, prodH);
-        applyWatermarkOnCanvas(ctx, w, h);
+        drawElDukeniBackground(ctx, S, S);
+        ctx.drawImage(img, 0, cy * srcH, srcW, srcH, 0, 0, S, S - stripH);
+        applyWatermarkOnCanvas(ctx, S, S);
         results.push(canvas.toDataURL('image/png'));
       });
       res(results);
