@@ -243,6 +243,7 @@
           <option value="Детские товары">Детские товары</option>
           <option value="Книги и канцтовары">Книги и канцтовары</option>
           <option value="Аптека и здоровье">Аптека и здоровье</option>
+          <option value="Интерьер">Интерьер</option>
           <option value="Прочее">Прочее</option>
         </select>
       </div>
@@ -309,6 +310,7 @@
           <option value="Детские товары">Детские товары</option>
           <option value="Книги и канцтовары">Книги и канцтовары</option>
           <option value="Аптека и здоровье">Аптека и здоровье</option>
+          <option value="Интерьер">Интерьер</option>
           <option value="Прочее">Прочее</option>
         </select>
       </div>
@@ -449,6 +451,7 @@
           <option value="Детские товары">Детские товары</option>
           <option value="Книги и канцтовары">Книги и канцтовары</option>
           <option value="Аптека и здоровье">Аптека и здоровье</option>
+          <option value="Интерьер">Интерьер</option>
           <option value="Прочее">Прочее</option>
         </select>
       </div>
@@ -1383,7 +1386,7 @@ function splitBatchImage(base64, mime) {
         c.width = S; c.height = S;
         const ctx = c.getContext('2d');
         drawElDukeniBackground(ctx, S, S);
-        ctx.drawImage(img, cx*srcW, cy*srcH, srcW, srcH, 0, 0, S, S - stripH);
+        ctx.drawImage(img, cx*srcW, cy*srcH, srcW, srcH, 0, 0, S, S);
         applyWatermarkOnCanvas(ctx, S, S);
         results.push(c.toDataURL('image/png'));
       });
@@ -1683,7 +1686,7 @@ function applyCardCanvas(base64, mime) {
       const ctx = c.getContext('2d');
       const stripH = Math.round(S * 0.07);
       drawElDukeniBackground(ctx, S, S);
-      ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, S, S - stripH);
+      ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, S, S);
       applyWatermarkOnCanvas(ctx, S, S);
       res(c.toDataURL('image/png'));
     };
@@ -1818,7 +1821,7 @@ function applyWatermarkOnCanvas(ctx, w, h) {
   ctx.save();
   ctx.font = `bold ${Math.max(11, Math.round(w * 0.026))}px Arial`;
   ctx.fillStyle = '#ffffff';
-  ctx.globalAlpha = 0.13;
+  ctx.globalAlpha = 0.05;
   for (let gy = 55; gy < h + 60; gy += 90) {
     for (let gx = -50; gx < w + 60; gx += 150) {
       const off = (Math.floor(gy / 90) % 2) * 75;
@@ -1846,7 +1849,7 @@ function splitOnePairToCards(base64, mime) {
         canvas.width = S; canvas.height = S;
         const ctx = canvas.getContext('2d');
         drawElDukeniBackground(ctx, S, S);
-        ctx.drawImage(img, 0, cy * srcH, srcW, srcH, 0, 0, S, S - stripH);
+        ctx.drawImage(img, 0, cy * srcH, srcW, srcH, 0, 0, S, S);
         applyWatermarkOnCanvas(ctx, S, S);
         results.push(canvas.toDataURL('image/png'));
       });
