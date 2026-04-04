@@ -409,8 +409,8 @@
         <div style="font-size:13px;line-height:1.6">
           Загрузите до <span style="color:var(--green);font-weight:600">50 фото</span> слева<br>
           и нажмите <strong>Запустить</strong><br><br>
-          Каждое фото → 4 ракурса с водяным знаком<br>
-          <span style="color:var(--text2)">~20 сек/фото · ~5 тг/карточка</span>
+          Каждое фото → 2 ракурса с водяным знаком<br>
+          <span style="color:var(--text2)">~20 сек/фото · ~17 тг/карточка</span>
         </div>
       </div>
     </div>
@@ -1262,7 +1262,7 @@ loadSellers();
 let batchQueue    = [];   // [{file, name, status:'pending'|'processing'|'done'|'error', images:[], error:'', startMs:0}]
 let batchRunning  = false;
 let batchStopped  = false;
-const BATCH_LABELS = ['Спереди','Сзади','3-4_угол','Детали'];
+const BATCH_LABELS = ['Спереди','Сзади'];
 const BATCH_MAX    = 50;
 
 // Добавить файлы в очередь
@@ -1419,7 +1419,7 @@ function addBatchCardToGrid(item, idx) {
     <div style="aspect-ratio:1;overflow:hidden;position:relative">
       <img src="${item.images[0]}" style="width:100%;height:100%;object-fit:cover">
       <div style="position:absolute;top:6px;left:6px;background:rgba(0,194,124,0.9);color:#fff;font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px">${idx+1}</div>
-      <div style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.7);color:#fff;font-size:10px;padding:2px 8px;border-radius:20px">👁 4 ракурса</div>
+      <div style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.7);color:#fff;font-size:10px;padding:2px 8px;border-radius:20px">👁 2 ракурса</div>
     </div>
     <div style="padding:8px 10px">
       <div style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${item.name}">${item.name}</div>
@@ -1439,7 +1439,7 @@ async function downloadSingleBatchItem(idx) {
   });
   const blob = await zip.generateAsync({ type: 'blob' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-  a.download = `${item.name}_4ракурса.zip`; a.click();
+  a.download = `${item.name}_2ракурса.zip`; a.click();
   URL.revokeObjectURL(a.href);
 }
 
@@ -1482,19 +1482,19 @@ async function startBatchProcessing() {
 
     try {
       const b64 = await getB64(batchQueue[i].file);
-      document.getElementById('batchCurrentStep').textContent = 'Gemini генерирует 4 ракурса...';
+      document.getElementById('batchCurrentStep').textContent = 'Gemini генерирует 2 ракурса...';
 
       const r = await fetch(VIEWS_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SB_KEY}`, 'apikey': SB_KEY },
-        body: JSON.stringify({ photo_base64: b64, photo_mime: batchQueue[i].file.type, product_name: '', category, mode: 'four_views' })
+        body: JSON.stringify({ photo_base64: b64, photo_mime: batchQueue[i].file.type, product_name: '', category, mode: 'two_views' })
       });
       const data = await r.json();
       if (!data.success) throw new Error(data.error || 'Ошибка генерации');
 
       const mime = data.mime || 'image/png';
 
-      // Показать результат 2×2
+      // Показать результат 1×2
       document.getElementById('batchCurrentSpinner').style.display = 'none';
       const resultImg = document.getElementById('batchCurrentResult');
       resultImg.src = `data:${mime};base64,${data.image_base64}`;
@@ -1502,15 +1502,15 @@ async function startBatchProcessing() {
 
       document.getElementById('batchCurrentStep').textContent = 'Разделяю и добавляю водяной знак...';
 
-      // Разбить на 4 с водяным знаком
-      const images = await splitBatchImage(data.image_base64, mime);
+      // Разбить на 2 с водяным знаком
+      const images = await splitOnePairToCards(data.image_base64, mime);
       if (!images.length) throw new Error('Не удалось разделить изображение');
 
       batchQueue[i].status = 'done';
       batchQueue[i].images = images;
 
       addBatchCardToGrid(batchQueue[i], i);
-      showToast(`✅ ${batchQueue[i].name} — 4 карточки готовы`, 'success');
+      showToast(`✅ ${batchQueue[i].name} — 2 карточки готовы`, 'success');
 
       // Показать кнопку скачать ZIP если хотя бы один готов
       const dlBtn = document.getElementById('batchDownloadBtn');
@@ -1906,7 +1906,7 @@ function openBatchDetail(idx) {
   document.getElementById('detailOrigImg').src = origUrl;
   document.getElementById('detailProductName').textContent = item.name;
 
-  // 4 ракурса
+  // 2 ракурса
   const grid = document.getElementById('detailGrid');
   grid.innerHTML = '';
   item.images.forEach((url, j) => {
@@ -1978,7 +1978,7 @@ async function regenerateBatchItem(idx) {
         <div style="margin-top:8px;font-size:10px;color:var(--text3);text-align:center">исходное фото</div>
       </div>
 
-      <!-- 4 ракурса -->
+      <!-- 2 ракурса -->
       <div style="flex:1">
         <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Готовые карточки с водяным знаком</div>
         <div class="batch-detail-grid" id="detailGrid"></div>
