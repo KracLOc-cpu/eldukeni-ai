@@ -268,6 +268,42 @@
         <button onclick="downloadCard()" style="flex:1;padding:10px;border:1px solid var(--border);border-radius:9px;background:var(--dark3);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px">⬇️ Карточка</button>
         <button onclick="downloadCardOriginal()" style="flex:1;padding:10px;border:1px solid var(--green);border-radius:9px;background:transparent;color:var(--green);font-size:13px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px">⬇️ Оригинал</button>
       </div>
+      <!-- Описание товара -->
+      <div id="card-desc-section" style="display:none;margin-top:16px;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--dark2)">
+        <div style="padding:11px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+          <div style="font-size:13px;font-weight:600">📝 Описание для Kaspi</div>
+          <button id="card-desc-btn" onclick="generateDescription('card')" style="padding:5px 14px;background:var(--green);border:none;border-radius:8px;color:white;font-size:12px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif">Сгенерировать</button>
+        </div>
+        <div style="padding:10px 16px;border-bottom:1px solid var(--border)">
+          <input type="text" id="card-char-input" placeholder="Характеристики (необязательно): цвет, размер, материал..." style="width:100%;padding:7px 10px;background:var(--dark3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;font-family:'Golos Text',sans-serif;outline:none">
+        </div>
+        <div style="display:flex;border-bottom:1px solid var(--border)">
+          <button onclick="switchDescLang('card','ru')" id="card-lang-ru" style="flex:1;padding:8px;background:var(--dark3);border:none;border-right:1px solid var(--border);color:var(--green);font-size:12px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif">🇷🇺 Русский</button>
+          <button onclick="switchDescLang('card','kz')" id="card-lang-kz" style="flex:1;padding:8px;background:transparent;border:none;color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif">🇰🇿 Қазақша</button>
+        </div>
+        <div style="padding:14px 16px">
+          <div id="card-desc-loading" style="display:none;text-align:center;padding:16px;color:var(--text2);font-size:13px">
+            <div class="spinner" style="width:22px;height:22px;border-width:2px;margin:0 auto 8px"></div>Генерирую описание...
+          </div>
+          <div id="card-desc-empty" style="text-align:center;padding:16px;color:var(--text3);font-size:12px">Нажмите «Сгенерировать» для создания описания на RU и KZ</div>
+          <div id="card-desc-content" style="display:none">
+            <div id="card-desc-ru">
+              <div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px">Заголовок</div>
+              <div id="card-title-ru" style="font-size:13px;font-weight:600;color:var(--text);background:var(--dark3);border:1px solid var(--border);border-radius:8px;padding:9px 12px;margin-bottom:10px;line-height:1.4"></div>
+              <div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px">Описание</div>
+              <div id="card-text-ru" style="font-size:12px;color:var(--text);background:var(--dark3);border:1px solid var(--border);border-radius:8px;padding:9px 12px;line-height:1.6;white-space:pre-wrap"></div>
+              <button onclick="copyDesc('card','ru')" style="margin-top:8px;width:100%;padding:7px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif">📋 Копировать</button>
+            </div>
+            <div id="card-desc-kz" style="display:none">
+              <div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px">Тақырып</div>
+              <div id="card-title-kz" style="font-size:13px;font-weight:600;color:var(--text);background:var(--dark3);border:1px solid var(--border);border-radius:8px;padding:9px 12px;margin-bottom:10px;line-height:1.4"></div>
+              <div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px">Сипаттама</div>
+              <div id="card-text-kz" style="font-size:12px;color:var(--text);background:var(--dark3);border:1px solid var(--border);border-radius:8px;padding:9px 12px;line-height:1.6;white-space:pre-wrap"></div>
+              <button onclick="copyDesc('card','kz')" style="margin-top:8px;width:100%;padding:7px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif">📋 Көшіру</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -479,6 +515,42 @@
         <button onclick="downloadTwoViews()" style="flex:1;padding:10px;border:1px solid var(--border);border-radius:9px;background:var(--dark3);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px">⬇️ 2 карточки (ZIP)</button>
         <button onclick="downloadTwoOriginal()" style="flex:1;padding:10px;border:1px solid var(--green);border-radius:9px;background:transparent;color:var(--green);font-size:13px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px">⬇️ Оригинал 1×2</button>
       </div>
+      <!-- Описание товара -->
+      <div id="two-desc-section" style="display:none;margin-top:16px;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--dark2)">
+        <div style="padding:11px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+          <div style="font-size:13px;font-weight:600">📝 Описание для Kaspi</div>
+          <button id="two-desc-btn" onclick="generateDescription('two')" style="padding:5px 14px;background:var(--green);border:none;border-radius:8px;color:white;font-size:12px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif">Сгенерировать</button>
+        </div>
+        <div style="padding:10px 16px;border-bottom:1px solid var(--border)">
+          <input type="text" id="two-char-input" placeholder="Характеристики (необязательно): цвет, размер, материал..." style="width:100%;padding:7px 10px;background:var(--dark3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;font-family:'Golos Text',sans-serif;outline:none">
+        </div>
+        <div style="display:flex;border-bottom:1px solid var(--border)">
+          <button onclick="switchDescLang('two','ru')" id="two-lang-ru" style="flex:1;padding:8px;background:var(--dark3);border:none;border-right:1px solid var(--border);color:var(--green);font-size:12px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif">🇷🇺 Русский</button>
+          <button onclick="switchDescLang('two','kz')" id="two-lang-kz" style="flex:1;padding:8px;background:transparent;border:none;color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif">🇰🇿 Қазақша</button>
+        </div>
+        <div style="padding:14px 16px">
+          <div id="two-desc-loading" style="display:none;text-align:center;padding:16px;color:var(--text2);font-size:13px">
+            <div class="spinner" style="width:22px;height:22px;border-width:2px;margin:0 auto 8px"></div>Генерирую описание...
+          </div>
+          <div id="two-desc-empty" style="text-align:center;padding:16px;color:var(--text3);font-size:12px">Нажмите «Сгенерировать» для создания описания на RU и KZ</div>
+          <div id="two-desc-content" style="display:none">
+            <div id="two-desc-ru">
+              <div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px">Заголовок</div>
+              <div id="two-title-ru" style="font-size:13px;font-weight:600;color:var(--text);background:var(--dark3);border:1px solid var(--border);border-radius:8px;padding:9px 12px;margin-bottom:10px;line-height:1.4"></div>
+              <div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px">Описание</div>
+              <div id="two-text-ru" style="font-size:12px;color:var(--text);background:var(--dark3);border:1px solid var(--border);border-radius:8px;padding:9px 12px;line-height:1.6;white-space:pre-wrap"></div>
+              <button onclick="copyDesc('two','ru')" style="margin-top:8px;width:100%;padding:7px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif">📋 Копировать</button>
+            </div>
+            <div id="two-desc-kz" style="display:none">
+              <div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px">Тақырып</div>
+              <div id="two-title-kz" style="font-size:13px;font-weight:600;color:var(--text);background:var(--dark3);border:1px solid var(--border);border-radius:8px;padding:9px 12px;margin-bottom:10px;line-height:1.4"></div>
+              <div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px">Сипаттама</div>
+              <div id="two-text-kz" style="font-size:12px;color:var(--text);background:var(--dark3);border:1px solid var(--border);border-radius:8px;padding:9px 12px;line-height:1.6;white-space:pre-wrap"></div>
+              <button onclick="copyDesc('two','kz')" style="margin-top:8px;width:100%;padding:7px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif">📋 Көшіру</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -566,6 +638,7 @@ const SB_URL = 'https://plgoehremyeeueweoxrt.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsZ29laHJlbXllZXVld2VveHJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNDQyNDcsImV4cCI6MjA4ODgyMDI0N30.yeMPdZyQBLnYZa6crKQ5tVSMHrYN7uvhITx5nXnrndI';
 const FN_URL    = `${SB_URL}/functions/v1/generate-card`;
 const VIEWS_URL = `${SB_URL}/functions/v1/generate-views`;
+const DESC_URL  = `${SB_URL}/functions/v1/generate-description`;
 const SEARCH_URL= `${SB_URL}/functions/v1/search-product`;
 const LENS_URL    = `${SB_URL}/functions/v1/lens-search`;
 const PROCESS_URL = `${SB_URL}/functions/v1/process-found-image`;
@@ -1594,10 +1667,70 @@ let cardFile = null;
 let cardImageUrl = '';
 let cardOriginalB64 = '';
 let cardOriginalMime = '';
+let cardProductDesc = '';
 let twoOriginalB64 = '';
 let twoOriginalMime = '';
+let twoProductDesc = '';
 let twoFile = null;
 let twoSplitImages = [];
+
+// ─── ОПИСАНИЕ ТОВАРА ───
+async function generateDescription(tab) {
+  const productDesc = tab === 'card' ? cardProductDesc : twoProductDesc;
+  const category    = tab === 'card'
+    ? document.getElementById('cardCategory').value
+    : document.getElementById('twoCategory').value;
+  const chars       = document.getElementById(`${tab}-char-input`).value.trim();
+  const btn         = document.getElementById(`${tab}-desc-btn`);
+
+  btn.disabled = true;
+  btn.textContent = '...';
+  document.getElementById(`${tab}-desc-loading`).style.display = 'block';
+  document.getElementById(`${tab}-desc-empty`).style.display   = 'none';
+  document.getElementById(`${tab}-desc-content`).style.display = 'none';
+
+  try {
+    const r = await fetch(DESC_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
+      body: JSON.stringify({ product_desc: productDesc, category, characteristics: chars })
+    });
+    const data = await r.json();
+    if (!data.success) throw new Error(data.error || 'Ошибка');
+
+    document.getElementById(`${tab}-title-ru`).textContent = data.ru?.title || '';
+    document.getElementById(`${tab}-text-ru`).textContent  = data.ru?.description || '';
+    document.getElementById(`${tab}-title-kz`).textContent = data.kz?.title || '';
+    document.getElementById(`${tab}-text-kz`).textContent  = data.kz?.description || '';
+
+    document.getElementById(`${tab}-desc-loading`).style.display = 'none';
+    document.getElementById(`${tab}-desc-content`).style.display = 'block';
+    showToast('Описание готово ✅', 'success');
+  } catch(e) {
+    document.getElementById(`${tab}-desc-loading`).style.display = 'none';
+    document.getElementById(`${tab}-desc-empty`).style.display   = 'block';
+    showToast('Ошибка описания: ' + e.message, 'error');
+  }
+  btn.disabled = false;
+  btn.textContent = 'Ещё раз';
+}
+
+function switchDescLang(tab, lang) {
+  document.getElementById(`${tab}-desc-ru`).style.display = lang === 'ru' ? 'block' : 'none';
+  document.getElementById(`${tab}-desc-kz`).style.display = lang === 'kz' ? 'block' : 'none';
+  document.getElementById(`${tab}-lang-ru`).style.background = lang === 'ru' ? 'var(--dark3)' : 'transparent';
+  document.getElementById(`${tab}-lang-kz`).style.background = lang === 'kz' ? 'var(--dark3)' : 'transparent';
+  document.getElementById(`${tab}-lang-ru`).style.color = lang === 'ru' ? 'var(--green)' : 'var(--text2)';
+  document.getElementById(`${tab}-lang-kz`).style.color = lang === 'kz' ? 'var(--green)' : 'var(--text2)';
+}
+
+function copyDesc(tab, lang) {
+  const title = document.getElementById(`${tab}-title-${lang}`).textContent;
+  const text  = document.getElementById(`${tab}-text-${lang}`).textContent;
+  navigator.clipboard.writeText(`${title}\n\n${text}`)
+    .then(() => showToast('Скопировано в буфер обмена ✅', 'success'))
+    .catch(() => showToast('Не удалось скопировать', 'error'));
+}
 
 const cardZone = document.getElementById('cardUploadZone');
 cardZone.addEventListener('dragover', e=>{e.preventDefault();cardZone.classList.add('drag');});
@@ -1659,6 +1792,7 @@ async function generateCard() {
     const mime = data.mime || 'image/png';
     cardOriginalB64 = data.image_base64;
     cardOriginalMime = mime;
+    cardProductDesc = data.product_desc || '';
     document.getElementById('cardLoading').style.display = 'none';
     // Применить фирменный фон + водяной знак через Canvas
     cardImageUrl = await applyCardCanvas(data.image_base64, mime);
@@ -1666,6 +1800,10 @@ async function generateCard() {
     img.src = cardImageUrl;
     img.style.display = 'block';
     document.getElementById('cardActions').style.display = 'flex';
+    // Показать блок описания
+    document.getElementById('card-desc-section').style.display = 'block';
+    document.getElementById('card-desc-content').style.display = 'none';
+    document.getElementById('card-desc-empty').style.display = 'block';
     showToast(`Карточка готова ✅${data.model_used ? ' (' + data.model_used.split('-').slice(0,3).join('-') + ')' : ''}`, 'success');
   } catch(e) {
     document.getElementById('cardLoading').style.display = 'none';
@@ -1739,12 +1877,17 @@ async function generateTwoViews() {
     const mime = data.mime || 'image/png';
     twoOriginalB64 = data.image_base64;
     twoOriginalMime = mime;
+    twoProductDesc = data.product_desc || '';
     const img = document.getElementById('twoResultImg');
     img.src = `data:${mime};base64,${data.image_base64}`;
     img.style.display = 'block';
     document.getElementById('twoLoading').style.display = 'none';
     await splitTwoViews(data.image_base64, mime);
     document.getElementById('twoActions').style.display = 'flex';
+    // Показать блок описания
+    document.getElementById('two-desc-section').style.display = 'block';
+    document.getElementById('two-desc-content').style.display = 'none';
+    document.getElementById('two-desc-empty').style.display = 'block';
     showToast(`Готово! 2 ракурса с водяным знаком ✅${data.model_used ? ' (' + data.model_used.split('-').slice(0,3).join('-') + ')' : ''}`, 'success');
   } catch(e) {
     document.getElementById('twoLoading').style.display = 'none';
