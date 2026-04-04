@@ -1870,17 +1870,17 @@ function splitOnePairToCards(base64, mime) {
   return new Promise(res => {
     const img = new Image();
     img.onload = () => {
-      const srcW = img.width, srcH = img.height / 2;
+      const srcW = img.width / 2, srcH = img.height;
       const S = 1000;
       const results = [];
       const cropSide = Math.min(srcW, srcH);
       const cropOx = (srcW - cropSide) / 2, cropOy = (srcH - cropSide) / 2;
-      [0, 1].forEach(cy => {
+      [0, 1].forEach(cx => {
         const canvas = document.createElement('canvas');
         canvas.width = S; canvas.height = S;
         const ctx = canvas.getContext('2d');
         drawElDukeniBackground(ctx, S, S);
-        ctx.drawImage(img, cropOx, cy * srcH + cropOy, cropSide, cropSide, 0, 0, S, S);
+        ctx.drawImage(img, cx * srcW + cropOx, cropOy, cropSide, cropSide, 0, 0, S, S);
         applyWatermarkOnCanvas(ctx, S, S);
         results.push(canvas.toDataURL('image/png'));
       });
