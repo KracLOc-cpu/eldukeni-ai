@@ -251,7 +251,7 @@
         🖼 Сгенерировать карточку
       </button>
       <div style="margin-top:10px;background:var(--dark2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--text2)">
-        💡 Стоимость: <span style="color:var(--green);font-weight:600">~$0.039 (~20 тг)</span> за карточку
+        💡 Стоимость: <span style="color:var(--green);font-weight:600">~$0.039 (~35 тг)</span> за карточку
       </div>
     </div>
     <div>
@@ -460,7 +460,7 @@
         ✨ Сгенерировать 2 ракурса
       </button>
       <div style="margin-top:10px;background:var(--dark2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--text2)">
-        💡 Стоимость: <span style="color:var(--green);font-weight:600">~$0.039 (~20 тг)</span> за 2 карточки (Спереди + Сзади)
+        💡 Стоимость: <span style="color:var(--green);font-weight:600">~$0.039 (~35 тг)</span> за 2 карточки (Спереди + Сзади)
       </div>
     </div>
     <div>
@@ -476,7 +476,8 @@
       <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin:12px 0 8px">Разделить на 2</div>
       <div class="split-grid" id="twoSplitGrid"></div>
       <div id="twoActions" style="display:none;gap:8px;margin-top:12px">
-        <button onclick="downloadTwoViews()" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:9px;background:var(--dark3);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px">⬇️ Скачать 2 карточки (ZIP)</button>
+        <button onclick="downloadTwoViews()" style="flex:1;padding:10px;border:1px solid var(--border);border-radius:9px;background:var(--dark3);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px">⬇️ 2 карточки (ZIP)</button>
+        <button onclick="downloadTwoOriginal()" style="flex:1;padding:10px;border:1px solid var(--green);border-radius:9px;background:transparent;color:var(--green);font-size:13px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px">⬇️ Оригинал 1×2</button>
       </div>
     </div>
   </div>
@@ -1593,6 +1594,8 @@ let cardFile = null;
 let cardImageUrl = '';
 let cardOriginalB64 = '';
 let cardOriginalMime = '';
+let twoOriginalB64 = '';
+let twoOriginalMime = '';
 let twoFile = null;
 let twoSplitImages = [];
 
@@ -1734,6 +1737,8 @@ async function generateTwoViews() {
     const data = await r.json();
     if (!data.success) throw new Error(data.error || 'Ошибка');
     const mime = data.mime || 'image/png';
+    twoOriginalB64 = data.image_base64;
+    twoOriginalMime = mime;
     const img = document.getElementById('twoResultImg');
     img.src = `data:${mime};base64,${data.image_base64}`;
     img.style.display = 'block';
@@ -1762,6 +1767,15 @@ async function splitTwoViews(base64, mime) {
     div.onclick = () => { const a = document.createElement('a'); a.href = dataUrl; a.download = `eldukeni_${labels[i]}.png`; a.click(); };
     grid.appendChild(div);
   });
+}
+
+function downloadTwoOriginal() {
+  if (!twoOriginalB64) return;
+  const ext = twoOriginalMime.includes('png') ? 'png' : 'jpg';
+  const a = document.createElement('a');
+  a.href = `data:${twoOriginalMime};base64,${twoOriginalB64}`;
+  a.download = `gemini_1x2_original.${ext}`;
+  a.click();
 }
 
 async function downloadTwoViews() {
