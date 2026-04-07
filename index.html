@@ -1453,17 +1453,20 @@ function splitBatchImage(base64, mime) {
     const img = new Image();
     img.onload = () => {
       const srcW = img.width / 2, srcH = img.height / 2;
-      const S = 1000;
+      const W = 1000, H = 902; // 325:293 ratio
+      const targetRatio = W / H;
+      let cropW, cropH;
+      if (srcW / srcH > targetRatio) { cropH = srcH; cropW = srcH * targetRatio; }
+      else { cropW = srcW; cropH = srcW / targetRatio; }
+      const cropOx = (srcW - cropW) / 2, cropOy = (srcH - cropH) / 2;
       const results = [];
-      const cropSide = Math.min(srcW, srcH);
-      const cropOx = (srcW - cropSide) / 2, cropOy = (srcH - cropSide) / 2;
       [[0,0],[1,0],[0,1],[1,1]].forEach(([cx, cy]) => {
         const c = document.createElement('canvas');
-        c.width = S; c.height = S;
+        c.width = W; c.height = H;
         const ctx = c.getContext('2d');
-        drawElDukeniBackground(ctx, S, S);
-        ctx.drawImage(img, cx*srcW + cropOx, cy*srcH + cropOy, cropSide, cropSide, 0, 0, S, S);
-        applyWatermarkOnCanvas(ctx, S, S);
+        drawElDukeniBackground(ctx, W, H);
+        ctx.drawImage(img, cx*srcW + cropOx, cy*srcH + cropOy, cropW, cropH, 0, 0, W, H);
+        applyWatermarkOnCanvas(ctx, W, H);
         results.push(c.toDataURL('image/png'));
       });
       res(results);
@@ -1668,15 +1671,21 @@ let cardImageUrl = '';
 let cardOriginalB64 = '';
 let cardOriginalMime = '';
 let cardProductDesc = '';
+let cardPhotoB64 = '';
+let cardPhotoMime = '';
 let twoOriginalB64 = '';
 let twoOriginalMime = '';
 let twoProductDesc = '';
+let twoPhotoB64 = '';
+let twoPhotoMime = '';
 let twoFile = null;
 let twoSplitImages = [];
 
 // ─── ОПИСАНИЕ ТОВАРА ───
 async function generateDescription(tab) {
   const productDesc = tab === 'card' ? cardProductDesc : twoProductDesc;
+  const photoB64    = tab === 'card' ? cardPhotoB64    : twoPhotoB64;
+  const photoMime   = tab === 'card' ? cardPhotoMime   : twoPhotoMime;
   const category    = tab === 'card'
     ? document.getElementById('cardCategory').value
     : document.getElementById('twoCategory').value;
@@ -1693,7 +1702,7 @@ async function generateDescription(tab) {
     const r = await fetch(DESC_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
-      body: JSON.stringify({ product_desc: productDesc, category, characteristics: chars })
+      body: JSON.stringify({ photo_base64: photoB64, photo_mime: photoMime, product_desc: productDesc, category, characteristics: chars })
     });
     const data = await r.json();
     if (!data.success) throw new Error(data.error || 'Ошибка');
@@ -1780,6 +1789,8 @@ async function generateCard() {
 
   try {
     const b64 = await getB64(cardFile);
+    cardPhotoB64 = b64;
+    cardPhotoMime = cardFile.type;
     const name = document.getElementById('cardProductName').value.trim();
     const category = document.getElementById('cardCategory').value;
     const r = await fetch(VIEWS_URL, {
@@ -1836,15 +1847,18 @@ function applyCardCanvas(base64, mime) {
   return new Promise(res => {
     const img = new Image();
     img.onload = () => {
-      const S = 1000;
+      const W = 1000, H = 902; // 325:293 ratio
       const c = document.createElement('canvas');
-      c.width = S; c.height = S;
+      c.width = W; c.height = H;
       const ctx = c.getContext('2d');
-      const cropSide = Math.min(img.width, img.height);
-      const cropOx = (img.width - cropSide) / 2, cropOy = (img.height - cropSide) / 2;
-      drawElDukeniBackground(ctx, S, S);
-      ctx.drawImage(img, cropOx, cropOy, cropSide, cropSide, 0, 0, S, S);
-      applyWatermarkOnCanvas(ctx, S, S);
+      const targetRatio = W / H;
+      let cropW, cropH;
+      if (img.width / img.height > targetRatio) { cropH = img.height; cropW = img.height * targetRatio; }
+      else { cropW = img.width; cropH = img.width / targetRatio; }
+      const cropOx = (img.width - cropW) / 2, cropOy = (img.height - cropH) / 2;
+      drawElDukeniBackground(ctx, W, H);
+      ctx.drawImage(img, cropOx, cropOy, cropW, cropH, 0, 0, W, H);
+      applyWatermarkOnCanvas(ctx, W, H);
       res(c.toDataURL('image/png'));
     };
     img.onerror = () => res('');
@@ -1865,6 +1879,8 @@ async function generateTwoViews() {
 
   try {
     const b64 = await getB64(twoFile);
+    twoPhotoB64 = b64;
+    twoPhotoMime = twoFile.type;
     const name = document.getElementById('twoProductName').value.trim();
     const category = document.getElementById('twoCategory').value;
     const r = await fetch(VIEWS_URL, {
@@ -1994,7 +2010,7 @@ function applyWatermarkOnCanvas(ctx, w, h) {
   ctx.save();
   ctx.font = `bold ${Math.max(11, Math.round(w * 0.026))}px Arial`;
   ctx.fillStyle = '#ffffff';
-  ctx.globalAlpha = 0.05;
+  ctx.globalAlpha = 0.10;
   for (let gy = 55; gy < h + 60; gy += 90) {
     for (let gx = -50; gx < w + 60; gx += 150) {
       const off = (Math.floor(gy / 90) % 2) * 75;
@@ -2014,17 +2030,20 @@ function splitOnePairToCards(base64, mime) {
     const img = new Image();
     img.onload = () => {
       const srcW = img.width, srcH = img.height / 2;
-      const S = 1000;
+      const W = 1000, H = 902; // 325:293 ratio
+      const targetRatio = W / H;
+      let cropW, cropH;
+      if (srcW / srcH > targetRatio) { cropH = srcH; cropW = srcH * targetRatio; }
+      else { cropW = srcW; cropH = srcW / targetRatio; }
+      const cropOx = (srcW - cropW) / 2, cropOy = (srcH - cropH) / 2;
       const results = [];
-      const cropSide = Math.min(srcW, srcH);
-      const cropOx = (srcW - cropSide) / 2, cropOy = (srcH - cropSide) / 2;
       [0, 1].forEach(cy => {
         const canvas = document.createElement('canvas');
-        canvas.width = S; canvas.height = S;
+        canvas.width = W; canvas.height = H;
         const ctx = canvas.getContext('2d');
-        drawElDukeniBackground(ctx, S, S);
-        ctx.drawImage(img, cropOx, cy * srcH + cropOy, cropSide, cropSide, 0, 0, S, S);
-        applyWatermarkOnCanvas(ctx, S, S);
+        drawElDukeniBackground(ctx, W, H);
+        ctx.drawImage(img, cropOx, cy * srcH + cropOy, cropW, cropH, 0, 0, W, H);
+        applyWatermarkOnCanvas(ctx, W, H);
         results.push(canvas.toDataURL('image/png'));
       });
       res(results);
