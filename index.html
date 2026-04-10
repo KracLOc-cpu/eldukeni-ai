@@ -192,6 +192,23 @@
 
   ::-webkit-scrollbar { width:5px; }
   ::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+
+  /* ═══ ADMIN PANEL ═══ */
+  .admin-overlay { position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:500;display:none;align-items:center;justify-content:center; }
+  .admin-overlay.open { display:flex; }
+  .admin-box { background:var(--dark2);border:1px solid var(--border);border-radius:16px;width:560px;max-width:95vw;max-height:90vh;overflow-y:auto;padding:24px; }
+  .admin-title { font-family:'Unbounded',sans-serif;font-size:16px;font-weight:700;color:var(--green);margin-bottom:20px;display:flex;align-items:center;justify-content:space-between; }
+  .admin-kpi { display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px; }
+  .admin-kpi-box { background:var(--dark3);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center; }
+  .admin-kpi-num { font-family:'Unbounded',sans-serif;font-size:20px;font-weight:700;color:var(--green); }
+  .admin-kpi-label { font-size:11px;color:var(--text3);margin-top:4px; }
+  .admin-kpi-cost { font-size:12px;color:var(--yellow);margin-top:3px;font-weight:600; }
+  .admin-table { width:100%;border-collapse:collapse;font-size:12px; }
+  .admin-table th { text-align:left;color:var(--text3);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--border);font-size:11px;text-transform:uppercase;letter-spacing:0.5px; }
+  .admin-table td { padding:7px 8px;border-bottom:1px solid rgba(48,54,61,0.5);color:var(--text); }
+  .admin-table tr:last-child td { border-bottom:none; }
+  .admin-table td.g { color:var(--green);font-weight:600; }
+  .admin-table td.y { color:var(--yellow); }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
@@ -606,6 +623,25 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- ═══ ADMIN PANEL (скрыт, открыть: 5 кликов по логотипу) ═══ -->
+<div class="admin-overlay" id="adminOverlay" onclick="if(event.target===this)closeAdminPanel()">
+  <div class="admin-box">
+    <div class="admin-title">
+      📊 Статистика генераций
+      <button onclick="closeAdminPanel()" style="background:var(--dark3);border:1px solid var(--border);color:var(--text2);width:28px;height:28px;border-radius:7px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
+    </div>
+    <div class="admin-kpi" id="adminKpi"></div>
+    <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Последние 7 дней</div>
+    <table class="admin-table">
+      <thead><tr><th>Дата</th><th>Карточка</th><th>Пакет</th><th>2 ракурса</th><th>Итого</th><th>Стоимость</th></tr></thead>
+      <tbody id="adminTableBody"></tbody>
+    </table>
+    <div style="margin-top:16px;display:flex;justify-content:flex-end">
+      <button onclick="clearAdminStats()" style="background:transparent;border:1px solid var(--border);color:var(--text3);padding:7px 14px;border-radius:8px;font-size:12px;cursor:pointer;font-family:'Golos Text',sans-serif">🗑 Очистить статистику</button>
+    </div>
+  </div>
+</div>
 
 <!-- ═══ МОДАЛ: Все фото со страницы ═══ -->
 <div id="pagePhotosModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:300;overflow-y:auto;padding:24px 16px">
@@ -1329,6 +1365,106 @@ function showToast(msg, type='success') {
 loadSellers();
 
 // ════════════════════════════════════════
+// ═══════  ADMIN: СЧЁТЧИК ГЕНЕРАЦИЙ  ═════
+// ════════════════════════════════════════
+const ADMIN_KEY = 'eldukeni_admin_stats';
+const COST_USD  = 0.039;
+const COST_TG   = 35;
+
+function trackGeneration(type = 'card') {
+  const today = new Date().toISOString().slice(0, 10);
+  const stats = JSON.parse(localStorage.getItem(ADMIN_KEY) || '{}');
+  if (!stats[today]) stats[today] = {};
+  stats[today][type] = (stats[today][type] || 0) + 1;
+  localStorage.setItem(ADMIN_KEY, JSON.stringify(stats));
+}
+
+function openAdminPanel() {
+  renderAdminStats();
+  document.getElementById('adminOverlay').classList.add('open');
+}
+
+function closeAdminPanel() {
+  document.getElementById('adminOverlay').classList.remove('open');
+}
+
+function clearAdminStats() {
+  if (!confirm('Очистить всю статистику генераций?')) return;
+  localStorage.removeItem(ADMIN_KEY);
+  renderAdminStats();
+}
+
+function renderAdminStats() {
+  const stats = JSON.parse(localStorage.getItem(ADMIN_KEY) || '{}');
+  const today = new Date().toISOString().slice(0, 10);
+
+  // Считаем суммарно за сегодня, неделю, всё время
+  function sumDays(days) {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days + 1);
+    const cutStr = cutoff.toISOString().slice(0, 10);
+    let total = 0;
+    for (const [d, v] of Object.entries(stats)) {
+      if (d >= cutStr) total += (v.card || 0) + (v.batch || 0) + (v.views || 0);
+    }
+    return total;
+  }
+
+  const todayCount = (() => {
+    const v = stats[today] || {};
+    return (v.card || 0) + (v.batch || 0) + (v.views || 0);
+  })();
+  const weekCount  = sumDays(7);
+  const allCount   = Object.values(stats).reduce((s, v) => s + (v.card||0) + (v.batch||0) + (v.views||0), 0);
+
+  const kpi = document.getElementById('adminKpi');
+  kpi.innerHTML = [
+    { label: 'Сегодня', n: todayCount },
+    { label: 'Неделя',  n: weekCount  },
+    { label: 'Всего',   n: allCount   },
+  ].map(({ label, n }) => `
+    <div class="admin-kpi-box">
+      <div class="admin-kpi-num">${n}</div>
+      <div class="admin-kpi-label">${label}</div>
+      <div class="admin-kpi-cost">~${Math.round(n * COST_TG)} тг / ~$${(n * COST_USD).toFixed(2)}</div>
+    </div>`).join('');
+
+  // Таблица последних 7 дней
+  const rows = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const ds = d.toISOString().slice(0, 10);
+    const v = stats[ds] || {};
+    const card = v.card || 0;
+    const batch = v.batch || 0;
+    const views = v.views || 0;
+    const total = card + batch + views;
+    const cost = Math.round(total * COST_TG);
+    const label = i === 0 ? 'Сегодня' : i === 1 ? 'Вчера' : ds;
+    rows.push(`<tr>
+      <td>${label}</td>
+      <td>${card || '—'}</td>
+      <td>${batch || '—'}</td>
+      <td>${views || '—'}</td>
+      <td class="${total ? 'g' : ''}">${total || '—'}</td>
+      <td class="${cost ? 'y' : ''}">${cost ? '~' + cost + ' тг' : '—'}</td>
+    </tr>`);
+  }
+  document.getElementById('adminTableBody').innerHTML = rows.join('');
+}
+
+// Скрытый триггер: 5 кликов по логотипу за 2 секунды
+let _logoClicks = 0, _logoTimer = null;
+document.querySelector('.logo').style.cursor = 'default';
+document.querySelector('.logo').addEventListener('click', () => {
+  _logoClicks++;
+  clearTimeout(_logoTimer);
+  _logoTimer = setTimeout(() => { _logoClicks = 0; }, 2000);
+  if (_logoClicks >= 5) { _logoClicks = 0; openAdminPanel(); }
+});
+
+// ════════════════════════════════════════
 // ═══════  ПАКЕТНАЯ ГЕНЕРАЦИЯ  ═══════════
 // ════════════════════════════════════════
 
@@ -1584,6 +1720,7 @@ async function startBatchProcessing() {
 
       batchQueue[i].status = 'done';
       batchQueue[i].images = images;
+      trackGeneration('batch');
 
       addBatchCardToGrid(batchQueue[i], i);
       showToast(`✅ ${batchQueue[i].name} — 2 карточки готовы`, 'success');
@@ -1816,6 +1953,7 @@ async function generateCard() {
     document.getElementById('card-desc-content').style.display = 'none';
     document.getElementById('card-desc-empty').style.display = 'block';
     showToast(`Карточка готова ✅${data.model_used ? ' (' + data.model_used.split('-').slice(0,3).join('-') + ')' : ''}`, 'success');
+    trackGeneration('card');
   } catch(e) {
     document.getElementById('cardLoading').style.display = 'none';
     document.getElementById('cardEmpty').style.display = 'block';
@@ -1905,6 +2043,7 @@ async function generateTwoViews() {
     document.getElementById('two-desc-content').style.display = 'none';
     document.getElementById('two-desc-empty').style.display = 'block';
     showToast(`Готово! 2 ракурса с водяным знаком ✅${data.model_used ? ' (' + data.model_used.split('-').slice(0,3).join('-') + ')' : ''}`, 'success');
+    trackGeneration('views');
   } catch(e) {
     document.getElementById('twoLoading').style.display = 'none';
     document.getElementById('twoEmpty').style.display = 'block';
