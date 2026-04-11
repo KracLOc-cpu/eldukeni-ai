@@ -1365,18 +1365,29 @@ function showToast(msg, type='success') {
 loadSellers();
 
 // ════════════════════════════════════════
-// ═══════  ADMIN: СЧЁТЧИК ГЕНЕРАЦИЙ  ═════
-// ════════════════════════════════════════
-const ADMIN_KEY = 'eldukeni_admin_stats';
+// ═══════  ADMIN: СЧЁТЧИК ГЕНЕРАЦИЙ (Supabase)  ═════
+// ════════════════════════════════════════════════════
 const COST_USD  = 0.039;
 const COST_TG   = 35;
+const STATS_REST = `${SB_URL}/rest/v1/generation_stats`;
+const STATS_HEADERS = { 'Content-Type': 'application/json', 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` };
+
+// Уникальный ID устройства (сохраняется в localStorage)
+function getDeviceId() {
+  let id = localStorage.getItem('eldukeni_device_id');
+  if (!id) { id = 'dev_' + Math.random().toString(36).slice(2, 10); localStorage.setItem('eldukeni_device_id', id); }
+  return id;
+}
 
 function trackGeneration(type = 'card') {
-  const today = new Date().toISOString().slice(0, 10);
-  const stats = JSON.parse(localStorage.getItem(ADMIN_KEY) || '{}');
-  if (!stats[today]) stats[today] = {};
-  stats[today][type] = (stats[today][type] || 0) + 1;
-  localStorage.setItem(ADMIN_KEY, JSON.stringify(stats));
+  const category = document.getElementById('cardCategory')?.value
+    || document.getElementById('batchCategory')?.value
+    || document.getElementById('twoCategory')?.value || '';
+  fetch(STATS_REST, {
+    method: 'POST',
+    headers: { ...STATS_HEADERS, 'Prefer': 'return=minimal' },
+    body: JSON.stringify({ gen_type: type, category, device_id: getDeviceId() })
+  }).catch(() => {});
 }
 
 function openAdminPanel() {
@@ -1388,70 +1399,87 @@ function closeAdminPanel() {
   document.getElementById('adminOverlay').classList.remove('open');
 }
 
-function clearAdminStats() {
+async function clearAdminStats() {
   if (!confirm('Очистить всю статистику генераций?')) return;
-  localStorage.removeItem(ADMIN_KEY);
-  renderAdminStats();
+  try {
+    await fetch(`${STATS_REST}?id=gt.0`, { method: 'DELETE', headers: STATS_HEADERS });
+    renderAdminStats();
+    showToast('Статистика очищена', 'success');
+  } catch(e) { showToast('Ошибка: ' + e.message, 'error'); }
 }
 
-function renderAdminStats() {
-  const stats = JSON.parse(localStorage.getItem(ADMIN_KEY) || '{}');
-  const today = new Date().toISOString().slice(0, 10);
-
-  // Считаем суммарно за сегодня, неделю, всё время
-  function sumDays(days) {
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - days + 1);
-    const cutStr = cutoff.toISOString().slice(0, 10);
-    let total = 0;
-    for (const [d, v] of Object.entries(stats)) {
-      if (d >= cutStr) total += (v.card || 0) + (v.batch || 0) + (v.views || 0);
-    }
-    return total;
-  }
-
-  const todayCount = (() => {
-    const v = stats[today] || {};
-    return (v.card || 0) + (v.batch || 0) + (v.views || 0);
-  })();
-  const weekCount  = sumDays(7);
-  const allCount   = Object.values(stats).reduce((s, v) => s + (v.card||0) + (v.batch||0) + (v.views||0), 0);
-
+async function renderAdminStats() {
   const kpi = document.getElementById('adminKpi');
-  kpi.innerHTML = [
-    { label: 'Сегодня', n: todayCount },
-    { label: 'Неделя',  n: weekCount  },
-    { label: 'Всего',   n: allCount   },
-  ].map(({ label, n }) => `
-    <div class="admin-kpi-box">
-      <div class="admin-kpi-num">${n}</div>
-      <div class="admin-kpi-label">${label}</div>
-      <div class="admin-kpi-cost">~${Math.round(n * COST_TG)} тг / ~$${(n * COST_USD).toFixed(2)}</div>
-    </div>`).join('');
+  const tbody = document.getElementById('adminTableBody');
+  kpi.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--text3);font-size:12px;padding:10px">Загрузка...</div>';
 
-  // Таблица последних 7 дней
-  const rows = [];
-  for (let i = 0; i < 7; i++) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    const ds = d.toISOString().slice(0, 10);
-    const v = stats[ds] || {};
-    const card = v.card || 0;
-    const batch = v.batch || 0;
-    const views = v.views || 0;
-    const total = card + batch + views;
-    const cost = Math.round(total * COST_TG);
-    const label = i === 0 ? 'Сегодня' : i === 1 ? 'Вчера' : ds;
-    rows.push(`<tr>
-      <td>${label}</td>
-      <td>${card || '—'}</td>
-      <td>${batch || '—'}</td>
-      <td>${views || '—'}</td>
-      <td class="${total ? 'g' : ''}">${total || '—'}</td>
-      <td class="${cost ? 'y' : ''}">${cost ? '~' + cost + ' тг' : '—'}</td>
-    </tr>`);
+  try {
+    // Запрашиваем все записи за последние 30 дней
+    const since = new Date();
+    since.setDate(since.getDate() - 30);
+    const sinceStr = since.toISOString();
+
+    const r = await fetch(`${STATS_REST}?select=created_at,gen_type&created_at=gte.${sinceStr}&order=created_at.desc&limit=5000`, {
+      headers: STATS_HEADERS
+    });
+    const rows = await r.json();
+
+    // Группируем по дням
+    const byDay = {};
+    for (const row of rows) {
+      const day = row.created_at.slice(0, 10);
+      if (!byDay[day]) byDay[day] = { card: 0, batch: 0, views: 0 };
+      const t = row.gen_type;
+      if (t === 'card' || t === 'batch' || t === 'views') byDay[day][t]++;
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    const todayData = byDay[today] || { card: 0, batch: 0, views: 0 };
+    const todayCount = todayData.card + todayData.batch + todayData.views;
+
+    // Неделя
+    let weekCount = 0;
+    const weekCutoff = new Date(); weekCutoff.setDate(weekCutoff.getDate() - 6);
+    const weekStr = weekCutoff.toISOString().slice(0, 10);
+    for (const [d, v] of Object.entries(byDay)) {
+      if (d >= weekStr) weekCount += v.card + v.batch + v.views;
+    }
+
+    const allCount = rows.length;
+
+    kpi.innerHTML = [
+      { label: 'Сегодня', n: todayCount },
+      { label: 'Неделя',  n: weekCount  },
+      { label: 'Всего (30д)', n: allCount },
+    ].map(({ label, n }) => `
+      <div class="admin-kpi-box">
+        <div class="admin-kpi-num">${n}</div>
+        <div class="admin-kpi-label">${label}</div>
+        <div class="admin-kpi-cost">~${Math.round(n * COST_TG)} тг / ~$${(n * COST_USD).toFixed(2)}</div>
+      </div>`).join('');
+
+    // Таблица последних 7 дней
+    const tableRows = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      const ds = d.toISOString().slice(0, 10);
+      const v = byDay[ds] || { card: 0, batch: 0, views: 0 };
+      const total = v.card + v.batch + v.views;
+      const cost = Math.round(total * COST_TG);
+      const label = i === 0 ? 'Сегодня' : i === 1 ? 'Вчера' : ds;
+      tableRows.push(`<tr>
+        <td>${label}</td>
+        <td>${v.card || '—'}</td>
+        <td>${v.batch || '—'}</td>
+        <td>${v.views || '—'}</td>
+        <td class="${total ? 'g' : ''}">${total || '—'}</td>
+        <td class="${cost ? 'y' : ''}">${cost ? '~' + cost + ' тг' : '—'}</td>
+      </tr>`);
+    }
+    tbody.innerHTML = tableRows.join('');
+  } catch(e) {
+    kpi.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--red);font-size:12px;padding:10px">Ошибка: ${e.message}</div>`;
   }
-  document.getElementById('adminTableBody').innerHTML = rows.join('');
 }
 
 // Скрытый триггер: 5 кликов по логотипу за 2 секунды
