@@ -2013,18 +2013,17 @@ function applyCardCanvas(base64, mime) {
   return new Promise(res => {
     const img = new Image();
     img.onload = () => {
-      const W = 1000, H = 1000;
+      const W = 1000, H = 902; // 325:293 ratio
       const c = document.createElement('canvas');
       c.width = W; c.height = H;
       const ctx = c.getContext('2d');
+      const targetRatio = W / H;
+      let cropW, cropH;
+      if (img.width / img.height > targetRatio) { cropH = img.height; cropW = img.height * targetRatio; }
+      else { cropW = img.width; cropH = img.width / targetRatio; }
+      const cropOx = (img.width - cropW) / 2, cropOy = (img.height - cropH) / 2;
       drawElDukeniBackground(ctx, W, H);
-      // CONTAIN: вписать целиком без обрезки
-      const scale = Math.min(W / img.width, H / img.height);
-      const dw = Math.round(img.width * scale);
-      const dh = Math.round(img.height * scale);
-      const dx = Math.round((W - dw) / 2);
-      const dy = Math.round((H - dh) / 2);
-      ctx.drawImage(img, 0, 0, img.width, img.height, dx, dy, dw, dh);
+      ctx.drawImage(img, cropOx, cropOy, cropW, cropH, 0, 0, W, H);
       applyWatermarkOnCanvas(ctx, W, H);
       res(c.toDataURL('image/png'));
     };
@@ -2198,21 +2197,19 @@ function splitOnePairToCards(base64, mime) {
     const img = new Image();
     img.onload = () => {
       const srcW = img.width, srcH = img.height / 2;
-      const W = 1000, H = 1000;
+      const W = 1000, H = 902; // 325:293 ratio
+      const targetRatio = W / H;
+      let cropW, cropH;
+      if (srcW / srcH > targetRatio) { cropH = srcH; cropW = srcH * targetRatio; }
+      else { cropW = srcW; cropH = srcW / targetRatio; }
+      const cropOx = (srcW - cropW) / 2, cropOy = (srcH - cropH) / 2;
       const results = [];
       [0, 1].forEach(cy => {
         const canvas = document.createElement('canvas');
         canvas.width = W; canvas.height = H;
         const ctx = canvas.getContext('2d');
-        // Белый фон + паттерн
         drawElDukeniBackground(ctx, W, H);
-        // CONTAIN: вписать без обрезки, сохраняя пропорции
-        const scale = Math.min(W / srcW, H / srcH);
-        const dw = Math.round(srcW * scale);
-        const dh = Math.round(srcH * scale);
-        const dx = Math.round((W - dw) / 2);
-        const dy = Math.round((H - dh) / 2);
-        ctx.drawImage(img, 0, cy * (img.height / 2), srcW, srcH, dx, dy, dw, dh);
+        ctx.drawImage(img, cropOx, cy * srcH + cropOy, cropW, cropH, 0, 0, W, H);
         applyWatermarkOnCanvas(ctx, W, H);
         results.push(canvas.toDataURL('image/png'));
       });
