@@ -1629,8 +1629,7 @@ function splitBatchImage(base64, mime) {
         c.width = W; c.height = H;
         const ctx = c.getContext('2d');
         drawElDukeniBackground(ctx, W, H);
-        const pad = Math.round(W * 0.08);
-        ctx.drawImage(img, cx*srcW + cropOx, cy*srcH + cropOy, cropW, cropH, pad, pad, W - pad * 2, H - pad * 2);
+        ctx.drawImage(img, cx*srcW + cropOx, cy*srcH + cropOy, cropW, cropH, 0, 0, W, H);
         applyWatermarkOnCanvas(ctx, W, H);
         results.push(c.toDataURL('image/png'));
       });
@@ -2024,8 +2023,7 @@ function applyCardCanvas(base64, mime) {
       else { cropW = img.width; cropH = img.width / targetRatio; }
       const cropOx = (img.width - cropW) / 2, cropOy = (img.height - cropH) / 2;
       drawElDukeniBackground(ctx, W, H);
-      const pad = Math.round(W * 0.08);
-      ctx.drawImage(img, cropOx, cropOy, cropW, cropH, pad, pad, W - pad * 2, H - pad * 2);
+      ctx.drawImage(img, cropOx, cropOy, cropW, cropH, 0, 0, W, H);
       applyWatermarkOnCanvas(ctx, W, H);
       res(c.toDataURL('image/png'));
     };
@@ -2211,8 +2209,7 @@ function splitOnePairToCards(base64, mime) {
         canvas.width = W; canvas.height = H;
         const ctx = canvas.getContext('2d');
         drawElDukeniBackground(ctx, W, H);
-        const pad = Math.round(W * 0.08);
-        ctx.drawImage(img, cropOx, cy * srcH + cropOy, cropW, cropH, pad, pad, W - pad * 2, H - pad * 2);
+        ctx.drawImage(img, cropOx, cy * srcH + cropOy, cropW, cropH, 0, 0, W, H);
         applyWatermarkOnCanvas(ctx, W, H);
         results.push(canvas.toDataURL('image/png'));
       });
