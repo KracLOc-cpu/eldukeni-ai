@@ -222,6 +222,17 @@
     <button class="tab-btn" onclick="switchTab('twoviews')">✨ 2 ракурса</button>
     <button class="tab-btn" onclick="switchTab('search')">🔍 Поиск фото</button>
   </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:1px">Размер карточки:</div>
+    <input id="cardW" type="number" value="1000" min="300" max="3000" step="50"
+      style="width:68px;padding:4px 7px;background:var(--dark3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;font-family:'Golos Text',sans-serif;text-align:center"
+      title="Ширина (px)">
+    <span style="color:var(--text3);font-size:12px">×</span>
+    <input id="cardH" type="number" value="1000" min="300" max="3000" step="50"
+      style="width:68px;padding:4px 7px;background:var(--dark3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;font-family:'Golos Text',sans-serif;text-align:center"
+      title="Высота (px)">
+    <span style="font-size:11px;color:var(--text3)">px</span>
+  </div>
   <div class="status-dot"><div class="dot"></div> Система активна</div>
 </header>
 
@@ -1617,7 +1628,7 @@ function splitBatchImage(base64, mime) {
     const img = new Image();
     img.onload = () => {
       const srcW = img.width / 2, srcH = img.height / 2;
-      const W = 1000, H = 1000; // 1:1 square (500x500 platform requirement)
+      const W = parseInt(document.getElementById('cardW')?.value||'1000')||1000, H = parseInt(document.getElementById('cardH')?.value||'1000')||1000;
       const targetRatio = W / H;
       let cropW, cropH;
       if (srcW / srcH > targetRatio) { cropH = srcH; cropW = srcH * targetRatio; }
@@ -2012,7 +2023,7 @@ function applyCardCanvas(base64, mime) {
   return new Promise(res => {
     const img = new Image();
     img.onload = () => {
-      const W = 1000, H = 1000; // 1:1 square (500x500 platform requirement)
+      const W = parseInt(document.getElementById('cardW')?.value||'1000')||1000, H = parseInt(document.getElementById('cardH')?.value||'1000')||1000;
       const c = document.createElement('canvas');
       c.width = W; c.height = H;
       const ctx = c.getContext('2d');
@@ -2195,7 +2206,7 @@ function splitOnePairToCards(base64, mime) {
     const img = new Image();
     img.onload = () => {
       const srcW = img.width, srcH = img.height / 2;
-      const W = 1000, H = 1000; // 1:1 square (500x500 platform requirement)
+      const W = parseInt(document.getElementById('cardW')?.value||'1000')||1000, H = parseInt(document.getElementById('cardH')?.value||'1000')||1000;
       const targetRatio = W / H;
       let cropW, cropH;
       if (srcW / srcH > targetRatio) { cropH = srcH; cropW = srcH * targetRatio; }
