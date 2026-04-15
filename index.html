@@ -1617,7 +1617,7 @@ function splitBatchImage(base64, mime) {
     const img = new Image();
     img.onload = () => {
       const srcW = img.width / 2, srcH = img.height / 2;
-      const W = 1000, H = 1000; // 1:1 square for Kaspi
+      const W = 1000, H = 902; // 325:293 ratio
       const targetRatio = W / H;
       let cropW, cropH;
       if (srcW / srcH > targetRatio) { cropH = srcH; cropW = srcH * targetRatio; }
@@ -1630,7 +1630,6 @@ function splitBatchImage(base64, mime) {
         const ctx = c.getContext('2d');
         drawElDukeniBackground(ctx, W, H);
         ctx.drawImage(img, cx*srcW + cropOx, cy*srcH + cropOy, cropW, cropH, 0, 0, W, H);
-        applyWatermarkOnCanvas(ctx, W, H);
         results.push(c.toDataURL('image/png'));
       });
       res(results);
@@ -2013,7 +2012,7 @@ function applyCardCanvas(base64, mime) {
   return new Promise(res => {
     const img = new Image();
     img.onload = () => {
-      const W = 1000, H = 1000; // 1:1 square for Kaspi
+      const W = 1000, H = 902; // 325:293 ratio
       const c = document.createElement('canvas');
       c.width = W; c.height = H;
       const ctx = c.getContext('2d');
@@ -2024,7 +2023,6 @@ function applyCardCanvas(base64, mime) {
       const cropOx = (img.width - cropW) / 2, cropOy = (img.height - cropH) / 2;
       drawElDukeniBackground(ctx, W, H);
       ctx.drawImage(img, cropOx, cropOy, cropW, cropH, 0, 0, W, H);
-      applyWatermarkOnCanvas(ctx, W, H);
       res(c.toDataURL('image/png'));
     };
     img.onerror = () => res('');
@@ -2197,7 +2195,7 @@ function splitOnePairToCards(base64, mime) {
     const img = new Image();
     img.onload = () => {
       const srcW = img.width, srcH = img.height / 2;
-      const W = 1000, H = 1000; // 1:1 square for Kaspi
+      const W = 1000, H = 902; // 325:293 ratio
       const targetRatio = W / H;
       let cropW, cropH;
       if (srcW / srcH > targetRatio) { cropH = srcH; cropW = srcH * targetRatio; }
@@ -2210,7 +2208,6 @@ function splitOnePairToCards(base64, mime) {
         const ctx = canvas.getContext('2d');
         drawElDukeniBackground(ctx, W, H);
         ctx.drawImage(img, cropOx, cy * srcH + cropOy, cropW, cropH, 0, 0, W, H);
-        applyWatermarkOnCanvas(ctx, W, H);
         results.push(canvas.toDataURL('image/png'));
       });
       res(results);
