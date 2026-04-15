@@ -232,6 +232,17 @@
       style="width:68px;padding:4px 7px;background:var(--dark3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;font-family:'Golos Text',sans-serif;text-align:center"
       title="Высота (px)">
     <span style="font-size:11px;color:var(--text3)">px</span>
+    <div style="width:1px;height:24px;background:var(--border);margin:0 4px"></div>
+    <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:7px;overflow:hidden">
+      <button id="qualityFast" onclick="setQuality('fast')"
+        style="padding:5px 12px;border:none;font-size:11px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif;background:var(--green);color:#fff;transition:all 0.2s">
+        ⚡ Быстрый
+      </button>
+      <button id="qualityPro" onclick="setQuality('pro')"
+        style="padding:5px 12px;border:none;font-size:11px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif;background:transparent;color:var(--text3);transition:all 0.2s">
+        ✨ Качественный
+      </button>
+    </div>
   </div>
   <div class="status-dot"><div class="dot"></div> Система активна</div>
 </header>
@@ -687,6 +698,21 @@ const FN_URL    = `${SB_URL}/functions/v1/generate-card`;
 const VIEWS_URL = `${SB_URL}/functions/v1/generate-views`;
 const DESC_URL  = `${SB_URL}/functions/v1/generate-description`;
 const SEARCH_URL= `${SB_URL}/functions/v1/search-product`;
+
+// Quality mode
+let currentQuality = 'fast';
+function setQuality(q) {
+  currentQuality = q;
+  const fast = document.getElementById('qualityFast');
+  const pro = document.getElementById('qualityPro');
+  if (q === 'fast') {
+    fast.style.background = 'var(--green)'; fast.style.color = '#fff';
+    pro.style.background = 'transparent'; pro.style.color = 'var(--text3)';
+  } else {
+    pro.style.background = 'linear-gradient(135deg,#8B5CF6,#6D28D9)'; pro.style.color = '#fff';
+    fast.style.background = 'transparent'; fast.style.color = 'var(--text3)';
+  }
+}
 const LENS_URL    = `${SB_URL}/functions/v1/lens-search`;
 const PROCESS_URL = `${SB_URL}/functions/v1/process-found-image`;
 const SCRAPE_URL  = `${SB_URL}/functions/v1/scrape-page-images`;
@@ -1737,7 +1763,7 @@ async function startBatchProcessing() {
       const r = await fetch(VIEWS_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SB_KEY}`, 'apikey': SB_KEY },
-        body: JSON.stringify({ photo_base64: b64, photo_mime: batchQueue[i].file.type, product_name: '', category, mode: 'two_views' })
+        body: JSON.stringify({ photo_base64: b64, photo_mime: batchQueue[i].file.type, product_name: '', category, mode: 'two_views', quality: currentQuality })
       });
       const data = await r.json();
       if (!data.success) throw new Error(data.error || 'Ошибка генерации');
@@ -1761,7 +1787,8 @@ async function startBatchProcessing() {
       trackGeneration('batch');
 
       addBatchCardToGrid(batchQueue[i], i);
-      showToast(`✅ ${batchQueue[i].name} — 2 карточки готовы`, 'success');
+      const bCostInfo = data.cost ? ` | $${data.cost.total_usd.toFixed(4)} (~${data.cost.total_tenge} тг)` : '';
+      showToast(`✅ ${batchQueue[i].name} — 2 карточки${bCostInfo}`, 'success');
 
       // Показать кнопку скачать ZIP если хотя бы один готов
       const dlBtn = document.getElementById('batchDownloadBtn');
@@ -1971,7 +1998,7 @@ async function generateCard() {
     const r = await fetch(VIEWS_URL, {
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`,'apikey':SB_KEY},
-      body: JSON.stringify({ photo_base64:b64, photo_mime:cardFile.type, product_name:name, category, mode:'single' })
+      body: JSON.stringify({ photo_base64:b64, photo_mime:cardFile.type, product_name:name, category, mode:'single', quality: currentQuality })
     });
     const data = await r.json();
     if (!data.success) throw new Error(data.error || 'Ошибка');
@@ -1990,7 +2017,8 @@ async function generateCard() {
     document.getElementById('card-desc-section').style.display = 'block';
     document.getElementById('card-desc-content').style.display = 'none';
     document.getElementById('card-desc-empty').style.display = 'block';
-    showToast(`Карточка готова ✅${data.model_used ? ' (' + data.model_used.split('-').slice(0,3).join('-') + ')' : ''}`, 'success');
+    const costInfo = data.cost ? ` | $${data.cost.total_usd.toFixed(4)} (~${data.cost.total_tenge} тг)` : '';
+    showToast(`Карточка готова ✅${data.model_used ? ' (' + data.model_used.split('-').slice(0,3).join('-') + ')' : ''}${costInfo}`, 'success');
     trackGeneration('card');
   } catch(e) {
     document.getElementById('cardLoading').style.display = 'none';
@@ -2061,7 +2089,7 @@ async function generateTwoViews() {
     const r = await fetch(VIEWS_URL, {
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`,'apikey':SB_KEY},
-      body: JSON.stringify({ photo_base64:b64, photo_mime:twoFile.type, product_name:name, category, mode:'two_views' })
+      body: JSON.stringify({ photo_base64:b64, photo_mime:twoFile.type, product_name:name, category, mode:'two_views', quality: currentQuality })
     });
     const data = await r.json();
     if (!data.success) throw new Error(data.error || 'Ошибка');
@@ -2079,7 +2107,8 @@ async function generateTwoViews() {
     document.getElementById('two-desc-section').style.display = 'block';
     document.getElementById('two-desc-content').style.display = 'none';
     document.getElementById('two-desc-empty').style.display = 'block';
-    showToast(`Готово! 2 ракурса с водяным знаком ✅${data.model_used ? ' (' + data.model_used.split('-').slice(0,3).join('-') + ')' : ''}`, 'success');
+    const costInfo2 = data.cost ? ` | $${data.cost.total_usd.toFixed(4)} (~${data.cost.total_tenge} тг)` : '';
+    showToast(`Готово! 2 ракурса ✅${data.model_used ? ' (' + data.model_used.split('-').slice(0,3).join('-') + ')' : ''}${costInfo2}`, 'success');
     trackGeneration('views');
   } catch(e) {
     document.getElementById('twoLoading').style.display = 'none';
