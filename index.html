@@ -395,6 +395,29 @@
   @keyframes shimmer { 0%{background-position:200% 0;} 100%{background-position:-200% 0;} }
 
   .empty-card { padding:30px;text-align:center;color:var(--text3);font-size:12px; }
+
+  /* ═══ PIN PAD ═══ */
+  .pin-dot {
+    width:14px;height:14px;border-radius:50%;
+    border:2px solid var(--border);background:transparent;
+    transition:all 0.15s;
+  }
+  .pin-dot.filled { background:var(--green);border-color:var(--green);transform:scale(1.15); }
+  .pin-dot.error  { background:var(--red);border-color:var(--red); }
+  .pin-btn {
+    aspect-ratio:1;border-radius:12px;border:1px solid var(--border);
+    background:var(--dark3);color:var(--text);font-size:20px;font-weight:600;
+    cursor:pointer;font-family:'Golos Text',sans-serif;
+    transition:all 0.12s;user-select:none;
+  }
+  .pin-btn:hover  { background:rgba(0,194,124,0.12);border-color:var(--green);color:var(--green); }
+  .pin-btn:active { transform:scale(0.92);background:rgba(0,194,124,0.25); }
+  @keyframes pinShake {
+    0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 60%{transform:translateX(8px)}
+  }
+  @keyframes pinSuccess {
+    0%{transform:scale(1)} 50%{transform:scale(1.08)} 100%{transform:scale(1)}
+  }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -822,6 +845,40 @@
   </div>
 </div>
 
+<!-- ═══ PIN OVERLAY ═══ -->
+<div id="pinOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:800;align-items:center;justify-content:center;backdrop-filter:blur(6px)">
+  <div style="background:var(--dark2);border:1px solid var(--border);border-radius:20px;padding:36px 32px;width:340px;max-width:92vw;text-align:center">
+    <div style="font-size:36px;margin-bottom:10px">🔐</div>
+    <div style="font-family:'Unbounded',sans-serif;font-size:16px;font-weight:700;color:var(--green);margin-bottom:6px">Введите PIN-код</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:24px">Доступ к панели администратора</div>
+    <!-- PIN dots -->
+    <div id="pinDots" style="display:flex;justify-content:center;gap:12px;margin-bottom:24px">
+      <div class="pin-dot" id="pd0"></div>
+      <div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div>
+      <div class="pin-dot" id="pd3"></div>
+    </div>
+    <!-- PIN error -->
+    <div id="pinError" style="display:none;color:var(--red);font-size:12px;margin-bottom:14px;animation:pinShake 0.3s ease">Неверный PIN-код</div>
+    <!-- Numpad -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:220px;margin:0 auto">
+      <button class="pin-btn" onclick="pinPress(1)">1</button>
+      <button class="pin-btn" onclick="pinPress(2)">2</button>
+      <button class="pin-btn" onclick="pinPress(3)">3</button>
+      <button class="pin-btn" onclick="pinPress(4)">4</button>
+      <button class="pin-btn" onclick="pinPress(5)">5</button>
+      <button class="pin-btn" onclick="pinPress(6)">6</button>
+      <button class="pin-btn" onclick="pinPress(7)">7</button>
+      <button class="pin-btn" onclick="pinPress(8)">8</button>
+      <button class="pin-btn" onclick="pinPress(9)">9</button>
+      <button class="pin-btn pin-btn-clear" onclick="pinClear()" style="font-size:11px;color:var(--text3)">Сброс</button>
+      <button class="pin-btn" onclick="pinPress(0)">0</button>
+      <button class="pin-btn pin-btn-del" onclick="pinDelete()">⌫</button>
+    </div>
+    <button onclick="closePinOverlay()" style="margin-top:18px;background:transparent;border:none;color:var(--text3);font-size:12px;cursor:pointer;font-family:'Golos Text',sans-serif">Отмена</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <!-- ═══ ADMIN DASHBOARD V2 ═══ -->
@@ -1163,8 +1220,13 @@ const CAT_COLORS = {
 // ─── ТАБЫ ───
 function switchTab(tab) {
   // Гард доступа к админке
-  if (tab === 'admin' && (!currentProfile || currentProfile.role !== 'admin')) {
-    showToast('Нет доступа к админ-панели', 'error');
+  if (tab === 'admin') {
+    if (!currentProfile || currentProfile.role !== 'admin') {
+      showToast('Нет доступа к админ-панели', 'error');
+      return;
+    }
+    // PIN-защита (пропускает если уже ввёл в этой сессии)
+    requirePin(() => _openAdminTab());
     return;
   }
   document.querySelectorAll('.tab-btn').forEach((b,i) => {
@@ -1186,14 +1248,24 @@ function switchTab(tab) {
     if (el) el.classList.toggle('active', tab===t);
   });
 
-  // Lifecycle админ-дашборда: подгрузка данных + auto-refresh
-  if (tab === 'admin') {
-    if (typeof loadAdminData === 'function') loadAdminData();
-    if (_adminRefreshTimer) clearInterval(_adminRefreshTimer);
-    _adminRefreshTimer = setInterval(() => { if (typeof loadAdminData==='function') loadAdminData(); }, 60000);
-  } else {
-    if (_adminRefreshTimer) { clearInterval(_adminRefreshTimer); _adminRefreshTimer = null; }
-  }
+  // Lifecycle для не-admin вкладок
+  if (_adminRefreshTimer) { clearInterval(_adminRefreshTimer); _adminRefreshTimer = null; }
+}
+
+// Вызывается после успешного ввода PIN
+function _openAdminTab() {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    b.classList.toggle('active', i===4);
+    if (i===1) { b.style.background=''; b.style.color=''; b.style.borderColor=''; }
+    if (i===4) { b.style.background='linear-gradient(135deg,#8B5CF6,#6D28D9)'; b.style.color='#fff'; b.style.borderColor='transparent'; }
+  });
+  ['card','batch','twoviews','search','admin'].forEach(t => {
+    const el = document.getElementById(`tab-${t}`);
+    if (el) el.classList.toggle('active', t==='admin');
+  });
+  if (typeof loadAdminData === 'function') loadAdminData();
+  if (_adminRefreshTimer) clearInterval(_adminRefreshTimer);
+  _adminRefreshTimer = setInterval(() => { if (typeof loadAdminData==='function') loadAdminData(); }, 60000);
 }
 
 // ─── ПОИСК ФОТО ───
@@ -1847,6 +1919,103 @@ function showToast(msg, type='success') {
 
 loadSellers();
 initAuth();
+
+// ════════════════════════════════════════
+// ═══════  PIN CODE  ══════════════════════
+// ════════════════════════════════════════
+
+const ADMIN_PIN = '1234'; // ← смени на свой PIN
+const PIN_SESSION_KEY = 'admin_pin_ok';
+let _pinBuffer = '';
+let _pinTarget = null; // callback после успешного ввода
+
+function requirePin(callback) {
+  // Проверяем сессию — если уже вводил PIN в этой сессии, пропускаем
+  if (sessionStorage.getItem(PIN_SESSION_KEY) === 'yes') {
+    callback();
+    return;
+  }
+  _pinTarget = callback;
+  _pinBuffer = '';
+  _updatePinDots();
+  document.getElementById('pinError').style.display = 'none';
+  const ol = document.getElementById('pinOverlay');
+  ol.style.display = 'flex';
+  // Keyboard support
+  document.addEventListener('keydown', _pinKeyHandler);
+}
+
+function closePinOverlay() {
+  document.getElementById('pinOverlay').style.display = 'none';
+  document.removeEventListener('keydown', _pinKeyHandler);
+  _pinBuffer = '';
+  _pinTarget = null;
+}
+
+function _pinKeyHandler(e) {
+  if (e.key >= '0' && e.key <= '9') { pinPress(parseInt(e.key)); return; }
+  if (e.key === 'Backspace') { pinDelete(); return; }
+  if (e.key === 'Escape')    { closePinOverlay(); return; }
+}
+
+function pinPress(digit) {
+  if (_pinBuffer.length >= 4) return;
+  _pinBuffer += String(digit);
+  _updatePinDots();
+  if (_pinBuffer.length === 4) {
+    setTimeout(_checkPin, 120); // небольшая пауза для анимации
+  }
+}
+
+function pinDelete() {
+  if (!_pinBuffer.length) return;
+  _pinBuffer = _pinBuffer.slice(0, -1);
+  _updatePinDots();
+  document.getElementById('pinError').style.display = 'none';
+}
+
+function pinClear() {
+  _pinBuffer = '';
+  _updatePinDots();
+  document.getElementById('pinError').style.display = 'none';
+}
+
+function _updatePinDots() {
+  for (let i = 0; i < 4; i++) {
+    const dot = document.getElementById('pd' + i);
+    dot.classList.toggle('filled', i < _pinBuffer.length);
+    dot.classList.remove('error');
+  }
+}
+
+function _checkPin() {
+  if (_pinBuffer === ADMIN_PIN) {
+    // Успех — запоминаем на сессию
+    sessionStorage.setItem(PIN_SESSION_KEY, 'yes');
+    // Анимация успеха
+    for (let i=0;i<4;i++) {
+      const d = document.getElementById('pd'+i);
+      d.style.animation = 'pinSuccess 0.3s ease';
+      setTimeout(()=>d.style.animation='', 300);
+    }
+    setTimeout(() => {
+      closePinOverlay();
+      if (_pinTarget) { _pinTarget(); _pinTarget = null; }
+    }, 250);
+  } else {
+    // Ошибка — тряска
+    for (let i=0;i<4;i++) document.getElementById('pd'+i).classList.add('error');
+    const err = document.getElementById('pinError');
+    err.style.display = 'block';
+    err.style.animation = 'none';
+    err.offsetHeight; // reflow
+    err.style.animation = 'pinShake 0.35s ease';
+    setTimeout(() => {
+      _pinBuffer = '';
+      _updatePinDots();
+    }, 600);
+  }
+}
 
 // ════════════════════════════════════════
 // ═══════  ADMIN DASHBOARD V2  ═══════════
