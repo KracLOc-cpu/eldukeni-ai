@@ -1812,15 +1812,13 @@ function splitBatchImage(base64, mime) {
       if (srcW / srcH > targetRatio) { cropH = srcH; cropW = srcH * targetRatio; }
       else { cropW = srcW; cropH = srcW / targetRatio; }
       const cropOx = (srcW - cropW) / 2, cropOy = (srcH - cropH) / 2;
-      // Добавляем padding 8% чтобы товар не упирался в края и был виден брендовый фон El Dukeni
-      const pad = Math.round(Math.min(W, H) * 0.08);
       const results = [];
       [[0,0],[1,0],[0,1],[1,1]].forEach(([cx, cy]) => {
         const c = document.createElement('canvas');
         c.width = W; c.height = H;
         const ctx = c.getContext('2d');
         drawElDukeniBackground(ctx, W, H);
-        ctx.drawImage(img, cx*srcW + cropOx, cy*srcH + cropOy, cropW, cropH, pad, pad, W - pad*2, H - pad*2);
+        ctx.drawImage(img, cx*srcW + cropOx, cy*srcH + cropOy, cropW, cropH, 0, 0, W, H);
         results.push(c.toDataURL('image/png'));
       });
       res(results);
@@ -2215,9 +2213,7 @@ function applyCardCanvas(base64, mime) {
       else { cropW = img.width; cropH = img.width / targetRatio; }
       const cropOx = (img.width - cropW) / 2, cropOy = (img.height - cropH) / 2;
       drawElDukeniBackground(ctx, W, H);
-      // Добавляем padding 8% чтобы товар не упирался в края и был виден брендовый фон El Dukeni
-      const pad = Math.round(Math.min(W, H) * 0.08);
-      ctx.drawImage(img, cropOx, cropOy, cropW, cropH, pad, pad, W - pad*2, H - pad*2);
+      ctx.drawImage(img, cropOx, cropOy, cropW, cropH, 0, 0, W, H);
       res(c.toDataURL('image/png'));
     };
     img.onerror = () => res('');
@@ -2397,15 +2393,13 @@ function splitOnePairToCards(base64, mime) {
       if (srcW / srcH > targetRatio) { cropH = srcH; cropW = srcH * targetRatio; }
       else { cropW = srcW; cropH = srcW / targetRatio; }
       const cropOx = (srcW - cropW) / 2, cropOy = (srcH - cropH) / 2;
-      // Добавляем padding 8% чтобы товар не упирался в края и был виден брендовый фон El Dukeni
-      const pad = Math.round(Math.min(W, H) * 0.08);
       const results = [];
       [0, 1].forEach(cy => {
         const canvas = document.createElement('canvas');
         canvas.width = W; canvas.height = H;
         const ctx = canvas.getContext('2d');
         drawElDukeniBackground(ctx, W, H);
-        ctx.drawImage(img, cropOx, cy * srcH + cropOy, cropW, cropH, pad, pad, W - pad*2, H - pad*2);
+        ctx.drawImage(img, cropOx, cy * srcH + cropOy, cropW, cropH, 0, 0, W, H);
         results.push(canvas.toDataURL('image/png'));
       });
       res(results);
