@@ -255,11 +255,11 @@
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:1px">Размер карточки:</div>
-    <input id="cardW" type="number" value="1000" min="300" max="3000" step="50"
+    <input id="cardW" type="number" value="1136" min="300" max="3000" step="50"
       style="width:68px;padding:4px 7px;background:var(--dark3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;font-family:'Golos Text',sans-serif;text-align:center"
       title="Ширина (px)">
     <span style="color:var(--text3);font-size:12px">×</span>
-    <input id="cardH" type="number" value="1000" min="300" max="3000" step="50"
+    <input id="cardH" type="number" value="1024" min="300" max="3000" step="50"
       style="width:68px;padding:4px 7px;background:var(--dark3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;font-family:'Golos Text',sans-serif;text-align:center"
       title="Высота (px)">
     <span style="font-size:11px;color:var(--text3)">px</span>
@@ -304,30 +304,6 @@
       <div style="margin-top:12px">
         <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px">Название товара (необязательно)</div>
         <input class="hint-input" type="text" id="cardProductName" placeholder="Например: Наушники Bloody G575...">
-      </div>
-      <div style="margin-top:10px">
-        <div style="font-size:11px;color:var(--text3);margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:1px">Категория (для фона)</div>
-        <select id="cardCategory" style="width:100%;padding:8px 10px;background:var(--dark3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;font-family:'Golos Text',sans-serif">
-          <option value="">Определить автоматически</option>
-          <option value="Электроника">Электроника</option>
-          <option value="Одежда и обувь">Одежда и обувь</option>
-          <option value="Косметика и парфюмерия">Косметика и парфюмерия</option>
-          <option value="Продукты питания">Продукты питания</option>
-          <option value="Товары для дома">Товары для дома</option>
-          <option value="Игрушки">Игрушки</option>
-          <option value="Спорт">Спорт</option>
-          <option value="Ювелирные украшения">Ювелирные украшения</option>
-          <option value="Мебель">Мебель</option>
-          <option value="Посуда и кухня">Посуда и кухня</option>
-          <option value="Текстиль">Текстиль и постельное</option>
-          <option value="Инструменты">Инструменты</option>
-          <option value="Автотовары">Автотовары</option>
-          <option value="Детские товары">Детские товары</option>
-          <option value="Книги и канцтовары">Книги и канцтовары</option>
-          <option value="Аптека и здоровье">Аптека и здоровье</option>
-          <option value="Интерьер">Интерьер</option>
-          <option value="Прочее">Прочее</option>
-        </select>
       </div>
       <div style="margin-top:8px">
         <div style="font-size:11px;color:var(--text3);margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:1px">Стиль фона</div>
@@ -415,31 +391,6 @@
         <input type="file" id="batchFileInput" accept="image/*" multiple style="display:none" onchange="handleBatchFiles(this.files)">
       </div>
 
-      <!-- Категория -->
-      <div style="padding:0 16px 10px">
-        <div style="font-size:11px;color:var(--text3);margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:1px">Категория (для фона)</div>
-        <select id="batchCategory" style="width:100%;padding:8px 10px;background:var(--dark3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;font-family:'Golos Text',sans-serif">
-          <option value="">Определить автоматически</option>
-          <option value="Электроника">Электроника</option>
-          <option value="Одежда и обувь">Одежда и обувь</option>
-          <option value="Косметика и парфюмерия">Косметика и парфюмерия</option>
-          <option value="Продукты питания">Продукты питания</option>
-          <option value="Товары для дома">Товары для дома</option>
-          <option value="Игрушки">Игрушки</option>
-          <option value="Спорт">Спорт</option>
-          <option value="Ювелирные украшения">Ювелирные украшения</option>
-          <option value="Мебель">Мебель</option>
-          <option value="Посуда и кухня">Посуда и кухня</option>
-          <option value="Текстиль">Текстиль и постельное</option>
-          <option value="Инструменты">Инструменты</option>
-          <option value="Автотовары">Автотовары</option>
-          <option value="Детские товары">Детские товары</option>
-          <option value="Книги и канцтовары">Книги и канцтовары</option>
-          <option value="Аптека и здоровье">Аптека и здоровье</option>
-          <option value="Интерьер">Интерьер</option>
-          <option value="Прочее">Прочее</option>
-        </select>
-      </div>
       <div style="padding:0 16px 10px">
         <div style="font-size:11px;color:var(--text3);margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:1px">Стиль фона</div>
         <div style="display:flex;gap:6px">
@@ -563,30 +514,6 @@
       <div style="margin-top:12px">
         <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px">Название товара (необязательно)</div>
         <input class="hint-input" type="text" id="twoProductName" placeholder="Например: Наушники Bloody G575...">
-      </div>
-      <div style="margin-top:10px">
-        <div style="font-size:11px;color:var(--text3);margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:1px">Категория (для фона)</div>
-        <select id="twoCategory" style="width:100%;padding:8px 10px;background:var(--dark3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;font-family:'Golos Text',sans-serif">
-          <option value="">Определить автоматически</option>
-          <option value="Электроника">Электроника</option>
-          <option value="Одежда и обувь">Одежда и обувь</option>
-          <option value="Косметика и парфюмерия">Косметика и парфюмерия</option>
-          <option value="Продукты питания">Продукты питания</option>
-          <option value="Товары для дома">Товары для дома</option>
-          <option value="Игрушки">Игрушки</option>
-          <option value="Спорт">Спорт</option>
-          <option value="Ювелирные украшения">Ювелирные украшения</option>
-          <option value="Мебель">Мебель</option>
-          <option value="Посуда и кухня">Посуда и кухня</option>
-          <option value="Текстиль">Текстиль и постельное</option>
-          <option value="Инструменты">Инструменты</option>
-          <option value="Автотовары">Автотовары</option>
-          <option value="Детские товары">Детские товары</option>
-          <option value="Книги и канцтовары">Книги и канцтовары</option>
-          <option value="Аптека и здоровье">Аптека и здоровье</option>
-          <option value="Интерьер">Интерьер</option>
-          <option value="Прочее">Прочее</option>
-        </select>
       </div>
       <div style="margin-top:8px">
         <div style="font-size:11px;color:var(--text3);margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:1px">Стиль фона</div>
@@ -1806,7 +1733,7 @@ function splitBatchImage(base64, mime) {
     const img = new Image();
     img.onload = () => {
       const srcW = img.width / 2, srcH = img.height / 2;
-      const W = parseInt(document.getElementById('cardW')?.value||'1000')||1000, H = parseInt(document.getElementById('cardH')?.value||'1000')||1000;
+      const W = parseInt(document.getElementById('cardW')?.value||'1136')||1136, H = parseInt(document.getElementById('cardH')?.value||'1024')||1024;
       const targetRatio = W / H;
       let cropW, cropH;
       if (srcW / srcH > targetRatio) { cropH = srcH; cropW = srcH * targetRatio; }
@@ -1884,7 +1811,7 @@ async function startBatchProcessing() {
   document.getElementById('batchCurrentWrap').style.display = 'block';
   document.getElementById('batchRightEmpty').style.display = 'none';
 
-  const category = document.getElementById('batchCategory').value;
+  const category = '';
 
   for (let i = 0; i < batchQueue.length; i++) {
     if (batchStopped) break;
@@ -2146,7 +2073,7 @@ async function generateCard() {
     cardPhotoB64 = b64;
     cardPhotoMime = cardFile.type;
     const name = document.getElementById('cardProductName').value.trim();
-    const category = document.getElementById('cardCategory').value;
+    const category = '';
     const r = await fetch(VIEWS_URL, {
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`,'apikey':SB_KEY},
@@ -2203,7 +2130,7 @@ function applyCardCanvas(base64, mime) {
   return new Promise(res => {
     const img = new Image();
     img.onload = () => {
-      const W = parseInt(document.getElementById('cardW')?.value||'1000')||1000, H = parseInt(document.getElementById('cardH')?.value||'1000')||1000;
+      const W = parseInt(document.getElementById('cardW')?.value||'1136')||1136, H = parseInt(document.getElementById('cardH')?.value||'1024')||1024;
       const c = document.createElement('canvas');
       c.width = W; c.height = H;
       const ctx = c.getContext('2d');
@@ -2237,7 +2164,7 @@ async function generateTwoViews() {
     twoPhotoB64 = b64;
     twoPhotoMime = twoFile.type;
     const name = document.getElementById('twoProductName').value.trim();
-    const category = document.getElementById('twoCategory').value;
+    const category = '';
     const r = await fetch(VIEWS_URL, {
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`,'apikey':SB_KEY},
@@ -2387,7 +2314,7 @@ function splitOnePairToCards(base64, mime) {
     const img = new Image();
     img.onload = () => {
       const srcW = img.width, srcH = img.height / 2;
-      const W = parseInt(document.getElementById('cardW')?.value||'1000')||1000, H = parseInt(document.getElementById('cardH')?.value||'1000')||1000;
+      const W = parseInt(document.getElementById('cardW')?.value||'1136')||1136, H = parseInt(document.getElementById('cardH')?.value||'1024')||1024;
       const targetRatio = W / H;
       let cropW, cropH;
       if (srcW / srcH > targetRatio) { cropH = srcH; cropW = srcH * targetRatio; }
