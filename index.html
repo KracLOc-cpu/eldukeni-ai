@@ -193,25 +193,212 @@
   ::-webkit-scrollbar { width:5px; }
   ::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
 
-  /* ═══ ADMIN PANEL ═══ */
-  .admin-overlay { position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:500;display:none;align-items:center;justify-content:center; }
-  .admin-overlay.open { display:flex; }
-  .admin-box { background:var(--dark2);border:1px solid var(--border);border-radius:16px;width:560px;max-width:95vw;max-height:90vh;overflow-y:auto;padding:24px; }
-  .admin-title { font-family:'Unbounded',sans-serif;font-size:16px;font-weight:700;color:var(--green);margin-bottom:20px;display:flex;align-items:center;justify-content:space-between; }
-  .admin-kpi { display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px; }
-  .admin-kpi-box { background:var(--dark3);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center; }
-  .admin-kpi-num { font-family:'Unbounded',sans-serif;font-size:20px;font-weight:700;color:var(--green); }
-  .admin-kpi-label { font-size:11px;color:var(--text3);margin-top:4px; }
-  .admin-kpi-cost { font-size:12px;color:var(--yellow);margin-top:3px;font-weight:600; }
-  .admin-table { width:100%;border-collapse:collapse;font-size:12px; }
-  .admin-table th { text-align:left;color:var(--text3);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--border);font-size:11px;text-transform:uppercase;letter-spacing:0.5px; }
-  .admin-table td { padding:7px 8px;border-bottom:1px solid rgba(48,54,61,0.5);color:var(--text); }
-  .admin-table tr:last-child td { border-bottom:none; }
-  .admin-table td.g { color:var(--green);font-weight:600; }
-  .admin-table td.y { color:var(--yellow); }
+  /* ═══ ADMIN DASHBOARD V2 ═══ */
+  .admin-page { padding:20px 24px 32px; max-width:1600px; margin:0 auto; }
+  .admin-hero { display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:14px; }
+  .admin-hero-title { font-family:'Unbounded',sans-serif;font-size:22px;font-weight:700;display:flex;align-items:center;gap:10px; }
+  .admin-hero-title .crown { background:linear-gradient(135deg,#8B5CF6,#6D28D9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; }
+  .admin-hero-sub { font-size:12px;color:var(--text3);margin-top:4px; }
+
+  .admin-filter-bar {
+    background:var(--dark2);border:1px solid var(--border);border-radius:14px;
+    padding:12px 16px;margin-bottom:18px;display:flex;align-items:center;
+    gap:14px;flex-wrap:wrap;
+  }
+  .filter-chips { display:flex;gap:6px; }
+  .filter-chip {
+    padding:7px 14px;border:1px solid var(--border);border-radius:8px;
+    background:transparent;color:var(--text2);font-size:12px;font-weight:600;
+    cursor:pointer;font-family:'Golos Text',sans-serif;transition:all 0.15s;
+  }
+  .filter-chip:hover { border-color:var(--green);color:var(--green); }
+  .filter-chip.active { background:var(--green);border-color:var(--green);color:#fff; }
+  .filter-divider { width:1px;height:24px;background:var(--border); }
+  .filter-select {
+    background:var(--dark3);border:1px solid var(--border);border-radius:8px;
+    padding:7px 12px;color:var(--text);font-size:12px;font-family:'Golos Text',sans-serif;
+    cursor:pointer;outline:none;min-width:160px;
+  }
+  .filter-date { background:var(--dark3);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-size:12px;font-family:'Golos Text',sans-serif;outline:none; }
+  .filter-spacer { flex:1; }
+  .filter-sync { font-size:11px;color:var(--text3);display:flex;align-items:center;gap:8px; }
+  .filter-sync .live-dot { width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 1.6s infinite; }
+  .filter-refresh {
+    background:var(--dark3);border:1px solid var(--border);border-radius:8px;
+    padding:6px 10px;color:var(--text2);font-size:14px;cursor:pointer;
+    transition:all 0.15s;
+  }
+  .filter-refresh:hover { border-color:var(--green);color:var(--green); }
+  .filter-refresh.spinning { animation:spin 1s linear infinite; }
+
+  /* KPI strip */
+  .admin-kpi-strip {
+    display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:20px;
+  }
+  @media (max-width:1280px){ .admin-kpi-strip { grid-template-columns:repeat(3,1fr); } }
+  @media (max-width:680px) { .admin-kpi-strip { grid-template-columns:repeat(2,1fr); } }
+  .kpi-card {
+    background:var(--dark2);border:1px solid var(--border);border-radius:14px;
+    padding:16px;position:relative;overflow:hidden;
+    transition:transform 0.15s,border-color 0.15s;
+  }
+  .kpi-card:hover { transform:translateY(-2px);border-color:rgba(0,194,124,0.4); }
+  .kpi-card::before {
+    content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent,var(--green));
+  }
+  .kpi-card.purple { --accent:#8B5CF6; }
+  .kpi-card.yellow { --accent:var(--yellow); }
+  .kpi-card.blue   { --accent:#4a6cf7; }
+  .kpi-card.pink   { --accent:#ec4899; }
+  .kpi-card.green  { --accent:var(--green); }
+  .kpi-label { font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.7px;font-weight:600;display:flex;align-items:center;gap:6px; }
+  .kpi-icon { width:22px;height:22px;border-radius:6px;background:var(--dark3);display:inline-flex;align-items:center;justify-content:center;font-size:12px; }
+  .kpi-value { font-family:'Unbounded',sans-serif;font-size:26px;font-weight:700;color:var(--text);margin-top:8px;line-height:1.1; }
+  .kpi-sub { font-size:11px;color:var(--text2);margin-top:4px; }
+  .kpi-delta { display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:600;margin-top:6px;padding:2px 7px;border-radius:10px; }
+  .delta-up   { background:rgba(0,194,124,0.12);color:var(--green); }
+  .delta-down { background:rgba(248,81,73,0.12);color:var(--red); }
+  .delta-flat { background:var(--dark3);color:var(--text3); }
+
+  /* Main grid */
+  .admin-grid { display:grid;grid-template-columns:repeat(12,1fr);gap:16px; }
+  @media (max-width:1100px){ .admin-grid { grid-template-columns:1fr; } }
+  .admin-card {
+    background:var(--dark2);border:1px solid var(--border);border-radius:14px;
+    padding:18px;display:flex;flex-direction:column;min-width:0;
+  }
+  .admin-card-head { display:flex;align-items:center;justify-content:space-between;margin-bottom:14px; }
+  .admin-card-title { font-size:13px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:7px; }
+  .admin-card-title .icon { font-size:15px; }
+  .admin-card-hint { font-size:11px;color:var(--text3); }
+  .span-4 { grid-column:span 4; }
+  .span-5 { grid-column:span 5; }
+  .span-6 { grid-column:span 6; }
+  .span-7 { grid-column:span 7; }
+  .span-8 { grid-column:span 8; }
+  .span-12 { grid-column:span 12; }
+  @media (max-width:1100px){ .span-4,.span-5,.span-6,.span-7,.span-8,.span-12 { grid-column:1; } }
+
+  /* Chart wrappers */
+  .chart-wrap { position:relative;height:280px;width:100%; }
+  .chart-wrap.tall { height:320px; }
+  .chart-wrap.short { height:220px; }
+  .chart-empty { display:flex;align-items:center;justify-content:center;height:100%;color:var(--text3);font-size:12px; }
+
+  /* Heatmap */
+  .heatmap-wrap { padding:6px 0 0; }
+  .heatmap-grid {
+    display:grid;grid-template-columns:38px repeat(24,1fr);gap:3px;
+    grid-auto-rows:20px;
+  }
+  .heatmap-cell {
+    border-radius:3px;background:var(--dark3);transition:transform 0.1s;
+    cursor:default;
+  }
+  .heatmap-cell:hover { transform:scale(1.4);outline:1px solid var(--green);z-index:5; }
+  .heatmap-day-label, .heatmap-hour-label {
+    font-size:10px;color:var(--text3);display:flex;align-items:center;justify-content:center;
+    font-weight:600;
+  }
+  .heatmap-hour-label { font-size:9px;color:var(--text3); }
+  .heatmap-legend { display:flex;align-items:center;gap:8px;margin-top:12px;font-size:10px;color:var(--text3);justify-content:flex-end; }
+  .heatmap-legend .scale { display:flex;gap:2px; }
+  .heatmap-legend .scale span { width:14px;height:10px;border-radius:2px; }
+
+  /* Leaderboard */
+  .leader-list { display:flex;flex-direction:column;gap:8px;max-height:480px;overflow-y:auto; }
+  .leader-row {
+    display:grid;grid-template-columns:28px 38px 1fr auto auto;gap:10px;align-items:center;
+    padding:10px 12px;border-radius:10px;background:var(--dark3);
+    border:1px solid var(--border);transition:all 0.15s;position:relative;overflow:hidden;
+  }
+  .leader-row::before {
+    content:'';position:absolute;left:0;top:0;bottom:0;background:rgba(0,194,124,0.07);
+    width:var(--bar,0%);transition:width 0.4s;z-index:0;
+  }
+  .leader-row > * { position:relative;z-index:1; }
+  .leader-row:hover { border-color:var(--green); }
+  .leader-rank { font-family:'Unbounded',sans-serif;font-size:13px;font-weight:700;color:var(--text2);text-align:center; }
+  .leader-rank.top { color:var(--yellow); }
+  .leader-avatar {
+    width:36px;height:36px;border-radius:9px;display:flex;align-items:center;
+    justify-content:center;font-family:'Unbounded',sans-serif;font-weight:700;
+    font-size:13px;color:#fff;flex-shrink:0;
+  }
+  .leader-meta { min-width:0; }
+  .leader-name { font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+  .leader-email { font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+  .leader-stat { text-align:right;min-width:70px; }
+  .leader-stat .num { font-family:'Unbounded',sans-serif;font-size:15px;font-weight:700;color:var(--green); }
+  .leader-stat .lab { font-size:10px;color:var(--text3); }
+  .leader-stat .cost { color:var(--yellow); }
+  .leader-badge { font-size:18px;text-align:center;width:28px; }
+
+  /* Live activity feed */
+  .feed-list { display:flex;flex-direction:column;gap:6px;max-height:520px;overflow-y:auto; }
+  .feed-item {
+    display:grid;grid-template-columns:30px 1fr auto;gap:10px;align-items:center;
+    padding:9px 10px;border-radius:9px;background:var(--dark3);
+    border:1px solid var(--border);font-size:12px;
+  }
+  .feed-avatar {
+    width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;
+    font-family:'Unbounded',sans-serif;font-weight:700;font-size:11px;color:#fff;
+  }
+  .feed-main { min-width:0; }
+  .feed-name { font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:6px; }
+  .feed-dot { width:6px;height:6px;border-radius:50%;background:var(--text3);flex-shrink:0; }
+  .feed-dot.live { background:var(--green);animation:pulse 1.4s infinite;box-shadow:0 0 6px rgba(0,194,124,0.7); }
+  .feed-meta { font-size:10px;color:var(--text3);margin-top:2px;display:flex;align-items:center;gap:6px; }
+  .feed-time { font-size:10px;color:var(--text3);text-align:right;white-space:nowrap; }
+
+  /* Mode/quality chips */
+  .mode-chip { padding:1px 7px;border-radius:9px;font-size:10px;font-weight:600; }
+  .mode-single    { background:rgba(74,108,247,0.15); color:#7c93f7; }
+  .mode-batch     { background:rgba(0,194,124,0.15); color:var(--green); }
+  .mode-two_views { background:rgba(139,92,246,0.18); color:#a78bfa; }
+  .quality-fast { color:var(--green); }
+  .quality-pro  { color:#a78bfa; }
+
+  /* Efficiency table */
+  .eff-table { width:100%;border-collapse:collapse;font-size:12px; }
+  .eff-table thead th {
+    text-align:left;color:var(--text3);font-weight:600;padding:8px 8px;
+    border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:0.5px;
+    position:sticky;top:0;background:var(--dark2);
+  }
+  .eff-table tbody td { padding:9px 8px;border-bottom:1px solid rgba(48,54,61,0.5); }
+  .eff-table tbody tr:hover { background:rgba(0,194,124,0.04); }
+  .eff-table tbody tr:last-child td { border-bottom:none; }
+  .eff-name { font-weight:600;color:var(--text);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+  .eff-num { font-family:'Unbounded',sans-serif;font-size:12px;font-weight:700;color:var(--text); }
+  .eff-bar-cell { position:relative;min-width:90px; }
+  .eff-bar {
+    height:6px;border-radius:3px;background:linear-gradient(90deg,var(--red),var(--yellow),var(--green));
+    width:var(--w,0%);max-width:100%;
+  }
+  .eff-bar-track { background:var(--dark3);border-radius:3px;height:6px;width:100%;overflow:hidden; }
+  .eff-score-pill {
+    display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:10px;
+    font-size:11px;font-weight:700;font-family:'Unbounded',sans-serif;
+  }
+  .score-high { background:rgba(0,194,124,0.15);color:var(--green); }
+  .score-mid  { background:rgba(227,179,65,0.15);color:var(--yellow); }
+  .score-low  { background:rgba(248,81,73,0.12);color:var(--red); }
+  .eff-table-wrap { max-height:480px;overflow-y:auto; }
+
+  /* Skeleton loader */
+  .skeleton {
+    background:linear-gradient(90deg,var(--dark3) 0%,#2a313a 50%,var(--dark3) 100%);
+    background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:6px;
+  }
+  @keyframes shimmer { 0%{background-position:200% 0;} 100%{background-position:-200% 0;} }
+
+  .empty-card { padding:30px;text-align:center;color:var(--text3);font-size:12px; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -251,7 +438,7 @@
     <button class="tab-btn active" onclick="switchTab('batch')" style="background:linear-gradient(135deg,#00C27C,#009960);color:#fff;border-color:transparent">📦 Пакет×50</button>
     <button class="tab-btn" onclick="switchTab('twoviews')">✨ 2 ракурса</button>
     <button class="tab-btn" onclick="switchTab('search')">🔍 Поиск фото</button>
-    <button class="tab-btn" id="adminTabBtn" onclick="openAdminPanel()" style="display:none;background:linear-gradient(135deg,#8B5CF6,#6D28D9);color:#fff;border-color:transparent">👑 Админ</button>
+    <button class="tab-btn" id="adminTabBtn" onclick="switchTab('admin')" style="display:none;background:linear-gradient(135deg,#8B5CF6,#6D28D9);color:#fff;border-color:transparent">👑 Админ</button>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:1px">Размер карточки:</div>
@@ -637,43 +824,163 @@
 
 <div class="toast" id="toast"></div>
 
-<!-- ═══ ADMIN PANEL ═══ -->
-<div class="admin-overlay" id="adminOverlay" onclick="if(event.target===this)closeAdminPanel()">
-  <div class="admin-box" style="width:720px">
-    <div class="admin-title">
-      👑 Панель администратора
-      <button onclick="closeAdminPanel()" style="background:var(--dark3);border:1px solid var(--border);color:var(--text2);width:28px;height:28px;border-radius:7px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
+<!-- ═══ ADMIN DASHBOARD V2 ═══ -->
+<div class="tab-panel" id="tab-admin">
+  <div class="admin-page">
+
+    <!-- Hero -->
+    <div class="admin-hero">
+      <div>
+        <div class="admin-hero-title"><span class="crown">👑</span> Панель администратора</div>
+        <div class="admin-hero-sub">Кто • Как • Во сколько • Эффективность</div>
+      </div>
+      <div class="filter-sync">
+        <span class="live-dot"></span>
+        <span>Live · обновление каждые 60 сек</span>
+        <span id="adminLastSync" style="color:var(--text2);margin-left:6px"></span>
+      </div>
     </div>
-    <!-- KPI -->
-    <div class="admin-kpi" id="adminKpi">
-      <div style="grid-column:1/-1;text-align:center;color:var(--text3);font-size:12px;padding:10px">Загрузка...</div>
+
+    <!-- Filter bar -->
+    <div class="admin-filter-bar">
+      <div class="filter-chips" id="adminRangeChips">
+        <button class="filter-chip" data-range="today" onclick="setAdminRange('today')">Сегодня</button>
+        <button class="filter-chip active" data-range="7d" onclick="setAdminRange('7d')">7 дней</button>
+        <button class="filter-chip" data-range="30d" onclick="setAdminRange('30d')">30 дней</button>
+        <button class="filter-chip" data-range="90d" onclick="setAdminRange('90d')">90 дней</button>
+        <button class="filter-chip" data-range="custom" onclick="setAdminRange('custom')">Custom</button>
+      </div>
+      <div id="adminCustomRange" style="display:none;align-items:center;gap:6px">
+        <input type="date" id="adminDateFrom" class="filter-date" onchange="onAdminCustomChange()">
+        <span style="color:var(--text3);font-size:12px">—</span>
+        <input type="date" id="adminDateTo" class="filter-date" onchange="onAdminCustomChange()">
+      </div>
+      <div class="filter-divider"></div>
+      <select id="adminUserFilter" class="filter-select" onchange="setAdminUserFilter(this.value)">
+        <option value="all">Все пользователи</option>
+      </select>
+      <div class="filter-spacer"></div>
+      <button class="filter-refresh" id="adminRefreshBtn" onclick="loadAdminData(true)" title="Обновить">↻</button>
     </div>
-    <!-- Tabs -->
-    <div style="display:flex;gap:4px;margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:12px">
-      <button id="adminTab1" onclick="switchAdminTab(1)"
-        style="padding:6px 16px;border:1px solid var(--green);border-radius:7px;background:var(--green);color:white;font-size:12px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif">
-        👥 Пользователи
-      </button>
-      <button id="adminTab2" onclick="switchAdminTab(2)"
-        style="padding:6px 16px;border:1px solid var(--border);border-radius:7px;background:transparent;color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif">
-        📋 Последние генерации
-      </button>
+
+    <!-- KPI strip -->
+    <div class="admin-kpi-strip" id="adminKpiStrip">
+      <div class="kpi-card green">
+        <div class="kpi-label"><span class="kpi-icon">📊</span> Всего генераций</div>
+        <div class="kpi-value" id="kpiTotal">—</div>
+        <div class="kpi-delta delta-flat" id="kpiTotalDelta">—</div>
+      </div>
+      <div class="kpi-card yellow">
+        <div class="kpi-label"><span class="kpi-icon">💰</span> Расход</div>
+        <div class="kpi-value" id="kpiCost">—</div>
+        <div class="kpi-delta delta-flat" id="kpiCostDelta">—</div>
+      </div>
+      <div class="kpi-card blue">
+        <div class="kpi-label"><span class="kpi-icon">👥</span> Активных</div>
+        <div class="kpi-value" id="kpiUsers">—</div>
+        <div class="kpi-sub" id="kpiUsersSub">—</div>
+      </div>
+      <div class="kpi-card purple">
+        <div class="kpi-label"><span class="kpi-icon">⚡</span> Среднее/юзер</div>
+        <div class="kpi-value" id="kpiAvg">—</div>
+        <div class="kpi-sub" id="kpiAvgSub">генераций</div>
+      </div>
+      <div class="kpi-card pink">
+        <div class="kpi-label"><span class="kpi-icon">🕐</span> Пиковый час</div>
+        <div class="kpi-value" id="kpiPeak">—</div>
+        <div class="kpi-sub" id="kpiPeakSub">—</div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-label"><span class="kpi-icon">🎯</span> Топ-режим</div>
+        <div class="kpi-value" id="kpiMode" style="font-size:18px">—</div>
+        <div class="kpi-sub" id="kpiModeSub">—</div>
+      </div>
     </div>
-    <!-- Users tab -->
-    <div id="adminTabPanel1">
-      <table class="admin-table">
-        <thead><tr><th>Имя</th><th>Email</th><th>Генераций</th><th>Расход</th><th>Последняя</th></tr></thead>
-        <tbody id="adminUsersBody"><tr><td colspan="5" style="text-align:center;color:var(--text3);padding:20px">Загрузка...</td></tr></tbody>
-      </table>
+
+    <!-- Main grid -->
+    <div class="admin-grid">
+
+      <!-- Timeline -->
+      <div class="admin-card span-8">
+        <div class="admin-card-head">
+          <div class="admin-card-title"><span class="icon">📈</span> Динамика по дням</div>
+          <div class="admin-card-hint">по режимам</div>
+        </div>
+        <div class="chart-wrap tall"><canvas id="chartTimeline"></canvas></div>
+      </div>
+
+      <!-- Mode donut -->
+      <div class="admin-card span-4">
+        <div class="admin-card-head">
+          <div class="admin-card-title"><span class="icon">🎯</span> Распределение режимов</div>
+          <div class="admin-card-hint">как</div>
+        </div>
+        <div class="chart-wrap tall"><canvas id="chartMode"></canvas></div>
+      </div>
+
+      <!-- Heatmap -->
+      <div class="admin-card span-8">
+        <div class="admin-card-head">
+          <div class="admin-card-title"><span class="icon">🔥</span> Активность по часам и дням</div>
+          <div class="admin-card-hint">когда работают — наведи на ячейку</div>
+        </div>
+        <div class="heatmap-wrap" id="heatmapWrap">
+          <div class="empty-card">Загрузка тепловой карты...</div>
+        </div>
+      </div>
+
+      <!-- Quality split -->
+      <div class="admin-card span-4">
+        <div class="admin-card-head">
+          <div class="admin-card-title"><span class="icon">⚡</span> Качество: Fast vs Pro</div>
+          <div class="admin-card-hint">топ-8 юзеров</div>
+        </div>
+        <div class="chart-wrap"><canvas id="chartQuality"></canvas></div>
+      </div>
+
+      <!-- Leaderboard -->
+      <div class="admin-card span-7">
+        <div class="admin-card-head">
+          <div class="admin-card-title"><span class="icon">🏆</span> Лидерборд пользователей</div>
+          <div class="admin-card-hint">топ-10 по генерациям</div>
+        </div>
+        <div class="leader-list" id="leaderboardList">
+          <div class="empty-card">Загрузка...</div>
+        </div>
+      </div>
+
+      <!-- Live feed -->
+      <div class="admin-card span-5">
+        <div class="admin-card-head">
+          <div class="admin-card-title"><span class="icon">📡</span> Live-активность</div>
+          <div class="admin-card-hint">последние 20</div>
+        </div>
+        <div class="feed-list" id="activityFeed">
+          <div class="empty-card">Загрузка...</div>
+        </div>
+      </div>
+
+      <!-- Efficiency table -->
+      <div class="admin-card span-12">
+        <div class="admin-card-head">
+          <div class="admin-card-title"><span class="icon">📐</span> Таблица эффективности</div>
+          <div class="admin-card-hint">генераций/час · стоимость · качество · итоговый скор</div>
+        </div>
+        <div class="eff-table-wrap">
+          <table class="eff-table" id="efficiencyTable">
+            <thead><tr>
+              <th>#</th><th>Пользователь</th><th>Генераций</th><th>Активных часов</th>
+              <th>Ген/час</th><th>Throughput</th><th>Стоимость/ген</th><th>% Pro</th>
+              <th>Расход</th><th>Последняя</th><th>Скор</th>
+            </tr></thead>
+            <tbody id="efficiencyBody">
+              <tr><td colspan="11" class="empty-card">Загрузка...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
-    <!-- Generations tab -->
-    <div id="adminTabPanel2" style="display:none">
-      <table class="admin-table">
-        <thead><tr><th>Время</th><th>Пользователь</th><th>Режим</th><th>Качество</th><th>Стоимость</th></tr></thead>
-        <tbody id="adminGensBody"><tr><td colspan="5" style="text-align:center;color:var(--text3);padding:20px">Загрузка...</td></tr></tbody>
-      </table>
-    </div>
-    <div style="margin-top:14px;font-size:11px;color:var(--text3);text-align:right">Данные за последние 30 дней</div>
   </div>
 </div>
 
@@ -743,6 +1050,7 @@ async function applySession(session) {
   document.getElementById('userRole').textContent   = role === 'admin' ? '👑 Админ' : '👤 Пользователь';
   document.getElementById('adminTabBtn').style.display = role === 'admin' ? '' : 'none';
   document.getElementById('loginOverlay').style.display = 'none';
+  if (role === 'admin' && typeof initAdminDashboard === 'function') initAdminDashboard();
 }
 
 async function doLogin() {
@@ -854,18 +1162,38 @@ const CAT_COLORS = {
 
 // ─── ТАБЫ ───
 function switchTab(tab) {
+  // Гард доступа к админке
+  if (tab === 'admin' && (!currentProfile || currentProfile.role !== 'admin')) {
+    showToast('Нет доступа к админ-панели', 'error');
+    return;
+  }
   document.querySelectorAll('.tab-btn').forEach((b,i) => {
     b.classList.toggle('active',
-      (i===0&&tab==='card')||(i===1&&tab==='batch')||(i===2&&tab==='twoviews')||(i===3&&tab==='search'));
+      (i===0&&tab==='card')||(i===1&&tab==='batch')||(i===2&&tab==='twoviews')||(i===3&&tab==='search')||(i===4&&tab==='admin'));
     if (i===1) {
       b.style.background = tab==='batch' ? 'linear-gradient(135deg,#00C27C,#009960)' : '';
       b.style.color = tab==='batch' ? '#fff' : '';
       b.style.borderColor = tab==='batch' ? 'transparent' : '';
     }
+    if (i===4) {
+      b.style.background = 'linear-gradient(135deg,#8B5CF6,#6D28D9)';
+      b.style.color = '#fff';
+      b.style.borderColor = 'transparent';
+    }
   });
-  ['card','batch','twoviews','search'].forEach(t =>
-    document.getElementById(`tab-${t}`).classList.toggle('active', tab===t)
-  );
+  ['card','batch','twoviews','search','admin'].forEach(t => {
+    const el = document.getElementById(`tab-${t}`);
+    if (el) el.classList.toggle('active', tab===t);
+  });
+
+  // Lifecycle админ-дашборда: подгрузка данных + auto-refresh
+  if (tab === 'admin') {
+    if (typeof loadAdminData === 'function') loadAdminData();
+    if (_adminRefreshTimer) clearInterval(_adminRefreshTimer);
+    _adminRefreshTimer = setInterval(() => { if (typeof loadAdminData==='function') loadAdminData(); }, 60000);
+  } else {
+    if (_adminRefreshTimer) { clearInterval(_adminRefreshTimer); _adminRefreshTimer = null; }
+  }
 }
 
 // ─── ПОИСК ФОТО ───
@@ -1521,91 +1849,565 @@ loadSellers();
 initAuth();
 
 // ════════════════════════════════════════
-// ═══════  ADMIN PANEL  ══════════════════
+// ═══════  ADMIN DASHBOARD V2  ═══════════
 // ════════════════════════════════════════
 
-let _adminTab = 1;
-let _adminRows = [];
+// State
+let _adminData = [];
+let _adminPrev = [];
+let _adminRange = '7d';            // today | 7d | 30d | 90d | custom
+let _adminCustom = { from:null, to:null };
+let _adminUserId = 'all';
+let _adminCharts = {};             // chart.js instances
+let _adminRefreshTimer = null;
+let _adminInited = false;
 
-function switchAdminTab(n) {
-  _adminTab = n;
-  document.getElementById('adminTabPanel1').style.display = n===1 ? '' : 'none';
-  document.getElementById('adminTabPanel2').style.display = n===2 ? '' : 'none';
-  const s1 = { background:'var(--green)', color:'white', borderColor:'var(--green)' };
-  const s2 = { background:'transparent', color:'var(--text2)', borderColor:'var(--border)' };
-  Object.assign(document.getElementById('adminTab1').style, n===1 ? s1 : s2);
-  Object.assign(document.getElementById('adminTab2').style, n===2 ? s1 : s2);
-  if (n===2) renderAdminGens();
-}
+const MODE_LABEL = { single:'🖼 Карточка', two_views:'✨ 2 ракурса', batch:'📦 Пакет' };
+const MODE_COLOR = { single:'#4a6cf7', two_views:'#a78bfa', batch:'#00C27C' };
+const QUAL_LABEL = { fast:'⚡ Быстрый', pro:'✨ Про' };
+const DOW_LABEL  = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+const AVATAR_PALETTE = ['#00C27C','#4a6cf7','#a78bfa','#ec4899','#e3b341','#27ae60','#e67e22','#1abc9c','#e74c3c','#f39c12'];
 
-function openAdminPanel() {
-  if (!currentProfile || currentProfile.role !== 'admin') { showToast('Нет доступа', 'error'); return; }
-  document.getElementById('adminOverlay').classList.add('open');
-  renderAdminStats();
-}
-
-function closeAdminPanel() {
-  document.getElementById('adminOverlay').classList.remove('open');
-}
-
-async function renderAdminStats() {
-  const kpi = document.getElementById('adminKpi');
-  kpi.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--text3);font-size:12px;padding:10px">Загрузка...</div>';
-  try {
-    const since = new Date(); since.setDate(since.getDate()-30);
-    const { data: rows, error } = await _supabase.from('generations')
-      .select('*').gte('created_at', since.toISOString())
-      .order('created_at', { ascending:false }).limit(1000);
-    if (error) throw error;
-    _adminRows = rows || [];
-
-    const today   = new Date().toISOString().slice(0,10);
-    const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate()-7);
-    const todayR  = _adminRows.filter(r => r.created_at.startsWith(today));
-    const weekR   = _adminRows.filter(r => new Date(r.created_at) >= weekAgo);
-    const totalTg = _adminRows.reduce((s,r) => s+(r.cost_tenge||0), 0);
-
-    kpi.innerHTML = `
-      <div class="admin-kpi-box"><div class="admin-kpi-num">${todayR.length}</div><div class="admin-kpi-label">Сегодня</div><div class="admin-kpi-cost">~${todayR.reduce((s,r)=>s+(r.cost_tenge||0),0)} тг</div></div>
-      <div class="admin-kpi-box"><div class="admin-kpi-num">${weekR.length}</div><div class="admin-kpi-label">7 дней</div><div class="admin-kpi-cost">~${weekR.reduce((s,r)=>s+(r.cost_tenge||0),0)} тг</div></div>
-      <div class="admin-kpi-box"><div class="admin-kpi-num">${_adminRows.length}</div><div class="admin-kpi-label">Всего (30д)</div><div class="admin-kpi-cost">~${Math.round(totalTg)} тг</div></div>
-    `;
-
-    // Users table
-    const byUser = {};
-    for (const r of _adminRows) {
-      const k = r.user_email || 'unknown';
-      if (!byUser[k]) byUser[k] = { name: r.user_name||k, email:k, count:0, cost:0, last:r.created_at };
-      byUser[k].count++;
-      byUser[k].cost += r.cost_tenge||0;
-      if (r.created_at > byUser[k].last) byUser[k].last = r.created_at;
-    }
-    const users = Object.values(byUser).sort((a,b)=>b.count-a.count);
-    document.getElementById('adminUsersBody').innerHTML = users.length
-      ? users.map(u=>`<tr>
-          <td style="font-weight:600">${u.name}</td>
-          <td style="color:var(--text3);font-size:11px">${u.email}</td>
-          <td class="g">${u.count}</td>
-          <td class="y">~${Math.round(u.cost)} тг</td>
-          <td style="font-size:11px;color:var(--text3)">${u.last.slice(0,16).replace('T',' ')}</td>
-        </tr>`).join('')
-      : '<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:20px">Нет данных</td></tr>';
-
-  } catch(e) {
-    kpi.innerHTML = `<div style="grid-column:1/-1;color:var(--red);font-size:12px;padding:10px">Ошибка: ${e.message}</div>`;
+// ─── Lifecycle ─────────────────────────────────────
+function initAdminDashboard() {
+  if (_adminInited) return;
+  _adminInited = true;
+  // Chart.js dark defaults
+  if (window.Chart) {
+    Chart.defaults.color = '#8b949e';
+    Chart.defaults.borderColor = 'rgba(48,54,61,0.7)';
+    Chart.defaults.font.family = "'Golos Text', sans-serif";
+    Chart.defaults.font.size = 11;
+    Chart.defaults.plugins.legend.labels.boxWidth = 10;
+    Chart.defaults.plugins.legend.labels.boxHeight = 10;
+    Chart.defaults.plugins.tooltip.backgroundColor = '#161b22';
+    Chart.defaults.plugins.tooltip.borderColor = '#30363d';
+    Chart.defaults.plugins.tooltip.borderWidth = 1;
+    Chart.defaults.plugins.tooltip.padding = 10;
+    Chart.defaults.plugins.tooltip.titleColor = '#e6edf3';
+    Chart.defaults.plugins.tooltip.bodyColor = '#e6edf3';
+    Chart.defaults.plugins.tooltip.cornerRadius = 8;
   }
 }
 
-function renderAdminGens() {
-  const modeLabel = { single:'🖼 Карточка', two_views:'✨ 2 ракурса', batch:'📦 Пакет' };
-  const qualLabel = { fast:'⚡ Быстрый', pro:'✨ Про' };
-  document.getElementById('adminGensBody').innerHTML = _adminRows.slice(0,50).map(r=>`<tr>
-    <td style="font-size:11px;color:var(--text3)">${r.created_at.slice(0,16).replace('T',' ')}</td>
-    <td style="font-size:12px">${r.user_name||r.user_email||'—'}</td>
-    <td>${modeLabel[r.mode]||r.mode||'—'}</td>
-    <td style="font-size:11px">${qualLabel[r.quality]||r.quality||'—'}</td>
-    <td class="y">~${r.cost_tenge||0} тг</td>
-  </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:20px">Нет данных</td></tr>';
+async function loadAdminData(forceSpinner) {
+  if (!currentProfile || currentProfile.role !== 'admin') return;
+  const refreshBtn = document.getElementById('adminRefreshBtn');
+  if (refreshBtn && forceSpinner) refreshBtn.classList.add('spinning');
+  try {
+    const { since, until } = _getAdminRange();
+    const periodMs = until.getTime() - since.getTime();
+    const prevSince = new Date(since.getTime() - periodMs);
+    const prevUntil = new Date(since.getTime());
+
+    const [curR, prevR] = await Promise.all([
+      _supabase.from('generations').select('*')
+        .gte('created_at', since.toISOString())
+        .lt('created_at', until.toISOString())
+        .order('created_at', { ascending:false }).limit(5000),
+      _supabase.from('generations').select('*')
+        .gte('created_at', prevSince.toISOString())
+        .lt('created_at', prevUntil.toISOString())
+        .limit(5000)
+    ]);
+    if (curR.error) throw curR.error;
+    _adminData = curR.data || [];
+    _adminPrev = (prevR.data) || [];
+
+    buildUserDropdown();
+    renderAll();
+    const sync = document.getElementById('adminLastSync');
+    if (sync) sync.textContent = '· ' + new Date().toLocaleTimeString('ru-RU').slice(0,5);
+  } catch(e) {
+    console.error(e);
+    showToast('Ошибка загрузки админки: ' + e.message, 'error');
+  } finally {
+    if (refreshBtn) setTimeout(()=>refreshBtn.classList.remove('spinning'), 400);
+  }
+}
+
+function _getAdminRange() {
+  const now = new Date();
+  const until = new Date(now.getFullYear(), now.getMonth(), now.getDate()+1);
+  let since;
+  if (_adminRange === 'today') {
+    since = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  } else if (_adminRange === '7d') {
+    since = new Date(now); since.setDate(since.getDate()-7);
+  } else if (_adminRange === '30d') {
+    since = new Date(now); since.setDate(since.getDate()-30);
+  } else if (_adminRange === '90d') {
+    since = new Date(now); since.setDate(since.getDate()-90);
+  } else if (_adminRange === 'custom' && _adminCustom.from && _adminCustom.to) {
+    since = new Date(_adminCustom.from);
+    return { since, until: new Date(_adminCustom.to+'T23:59:59') };
+  } else {
+    since = new Date(now); since.setDate(since.getDate()-7);
+  }
+  return { since, until };
+}
+
+function _filteredRows() {
+  if (_adminUserId === 'all') return _adminData;
+  return _adminData.filter(r => r.user_id === _adminUserId);
+}
+
+function renderAll() {
+  destroyCharts();
+  renderKPIs();
+  renderTimeline();
+  renderHeatmap();
+  renderModeDonut();
+  renderQualitySplit();
+  renderLeaderboard();
+  renderActivityFeed();
+  renderEfficiencyTable();
+}
+
+function destroyCharts() {
+  for (const k of Object.keys(_adminCharts)) {
+    try { _adminCharts[k].destroy(); } catch(e){}
+    delete _adminCharts[k];
+  }
+}
+
+// ─── Filters ────────────────────────────────────────
+function setAdminRange(r) {
+  _adminRange = r;
+  document.querySelectorAll('#adminRangeChips .filter-chip').forEach(b => {
+    b.classList.toggle('active', b.dataset.range === r);
+  });
+  document.getElementById('adminCustomRange').style.display = r === 'custom' ? 'flex' : 'none';
+  if (r !== 'custom') loadAdminData(true);
+}
+function onAdminCustomChange() {
+  _adminCustom.from = document.getElementById('adminDateFrom').value;
+  _adminCustom.to   = document.getElementById('adminDateTo').value;
+  if (_adminCustom.from && _adminCustom.to) loadAdminData(true);
+}
+function setAdminUserFilter(id) {
+  _adminUserId = id;
+  renderAll();
+}
+function buildUserDropdown() {
+  const sel = document.getElementById('adminUserFilter');
+  if (!sel) return;
+  const prev = sel.value;
+  const seen = new Map();
+  for (const r of _adminData) {
+    if (r.user_id && !seen.has(r.user_id)) seen.set(r.user_id, r.user_name || r.user_email || r.user_id);
+  }
+  const opts = Array.from(seen.entries()).sort((a,b) => a[1].localeCompare(b[1]));
+  sel.innerHTML = '<option value="all">Все пользователи (' + seen.size + ')</option>' +
+    opts.map(([id,name]) => `<option value="${id}">${_esc(name)}</option>`).join('');
+  sel.value = seen.has(prev) ? prev : 'all';
+  _adminUserId = sel.value;
+}
+
+// ─── Renderers ──────────────────────────────────────
+function renderKPIs() {
+  const rows = _filteredRows();
+  const prev = _adminUserId === 'all' ? _adminPrev : _adminPrev.filter(r => r.user_id === _adminUserId);
+
+  const total = rows.length;
+  const totalCost = rows.reduce((s,r)=>s+(r.cost_tenge||0), 0);
+  const users = new Set(rows.map(r => r.user_id)).size;
+  const allUsers = new Set(_adminData.map(r => r.user_id)).size;
+  const avg = users ? (total/users).toFixed(1) : '0';
+
+  // Peak hour
+  const hourBuckets = new Array(24).fill(0);
+  for (const r of rows) hourBuckets[new Date(r.created_at).getHours()]++;
+  let peakHour = 0, peakVal = 0;
+  for (let i=0;i<24;i++) if (hourBuckets[i] > peakVal) { peakVal = hourBuckets[i]; peakHour = i; }
+
+  // Top mode
+  const modeBuckets = {};
+  for (const r of rows) modeBuckets[r.mode] = (modeBuckets[r.mode]||0) + 1;
+  const topMode = Object.entries(modeBuckets).sort((a,b)=>b[1]-a[1])[0];
+
+  // Deltas
+  const prevTotal = prev.length;
+  const prevCost  = prev.reduce((s,r)=>s+(r.cost_tenge||0),0);
+  const dT = _delta(total, prevTotal);
+  const dC = _delta(totalCost, prevCost);
+
+  document.getElementById('kpiTotal').textContent = total.toLocaleString('ru-RU');
+  document.getElementById('kpiCost').textContent  = fmtTg(totalCost);
+  document.getElementById('kpiUsers').textContent = users;
+  document.getElementById('kpiUsersSub').textContent = `из ${allUsers} за период`;
+  document.getElementById('kpiAvg').textContent   = avg;
+  document.getElementById('kpiAvgSub').textContent = 'генераций на юзера';
+  document.getElementById('kpiPeak').textContent  = peakVal ? String(peakHour).padStart(2,'0') + ':00' : '—';
+  document.getElementById('kpiPeakSub').textContent = peakVal ? `${peakVal} генераций в этот час` : 'нет данных';
+  document.getElementById('kpiMode').textContent  = topMode ? (MODE_LABEL[topMode[0]]||topMode[0]) : '—';
+  document.getElementById('kpiModeSub').textContent = topMode ? `${topMode[1]} (${Math.round(topMode[1]/total*100)}%)` : '';
+
+  _setDelta('kpiTotalDelta', dT, '');
+  _setDelta('kpiCostDelta',  dC, '');
+}
+
+function _delta(cur, prev) {
+  if (!prev) return cur ? Infinity : 0;
+  return ((cur - prev) / prev) * 100;
+}
+function _setDelta(elId, pct, suffix) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  if (pct === Infinity) { el.className = 'kpi-delta delta-up'; el.textContent = '↑ new' + suffix; return; }
+  if (Math.abs(pct) < 0.5) { el.className = 'kpi-delta delta-flat'; el.textContent = '· без изменений'; return; }
+  const up = pct > 0;
+  el.className = 'kpi-delta ' + (up ? 'delta-up' : 'delta-down');
+  el.textContent = (up?'↑ +':'↓ ') + Math.abs(pct).toFixed(1) + '% к прошлому периоду';
+}
+
+function renderTimeline() {
+  const rows = _filteredRows();
+  const days = _bucketByDay(rows);
+  const ctx = document.getElementById('chartTimeline');
+  if (!ctx) return;
+  _adminCharts.timeline = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: days.labels,
+      datasets: [
+        { label:'Карточка', data:days.single,    backgroundColor:'rgba(74,108,247,0.25)',  borderColor:'#4a6cf7', tension:0.35, fill:true, pointRadius:0, borderWidth:2 },
+        { label:'Пакет',    data:days.batch,     backgroundColor:'rgba(0,194,124,0.30)',   borderColor:'#00C27C', tension:0.35, fill:true, pointRadius:0, borderWidth:2 },
+        { label:'2 ракурса',data:days.two_views, backgroundColor:'rgba(167,139,250,0.25)', borderColor:'#a78bfa', tension:0.35, fill:true, pointRadius:0, borderWidth:2 },
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      interaction:{ mode:'index', intersect:false },
+      plugins:{ legend:{ position:'bottom', labels:{ usePointStyle:true } } },
+      scales:{
+        x:{ grid:{ color:'rgba(48,54,61,0.4)' }, ticks:{ maxRotation:0, autoSkip:true, maxTicksLimit:12 } },
+        y:{ stacked:true, grid:{ color:'rgba(48,54,61,0.4)' }, ticks:{ precision:0 } }
+      }
+    }
+  });
+}
+
+function _bucketByDay(rows) {
+  const { since, until } = _getAdminRange();
+  const dayMs = 86400000;
+  const start = new Date(since.getFullYear(), since.getMonth(), since.getDate());
+  const end   = new Date(until.getFullYear(), until.getMonth(), until.getDate());
+  const days = Math.max(1, Math.round((end - start) / dayMs));
+  const labels=[], single=[], batch=[], two_views=[];
+  const map = {};
+  for (const r of rows) {
+    const k = r.created_at.slice(0,10);
+    if (!map[k]) map[k] = { single:0, batch:0, two_views:0 };
+    if (map[k][r.mode] !== undefined) map[k][r.mode]++;
+  }
+  for (let i=0; i<days; i++) {
+    const d = new Date(start.getTime() + i*dayMs);
+    const k = d.toISOString().slice(0,10);
+    labels.push(d.toLocaleDateString('ru-RU', { day:'2-digit', month:'2-digit' }));
+    single.push(map[k]?.single || 0);
+    batch.push(map[k]?.batch || 0);
+    two_views.push(map[k]?.two_views || 0);
+  }
+  return { labels, single, batch, two_views };
+}
+
+function renderHeatmap() {
+  const rows = _filteredRows();
+  // 7 дней (Пн=0..Вс=6) × 24 часа
+  const grid = Array.from({length:7}, ()=>new Array(24).fill(0));
+  for (const r of rows) {
+    const d = new Date(r.created_at);
+    const dow = (d.getDay() + 6) % 7;  // Mon=0
+    grid[dow][d.getHours()]++;
+  }
+  let max = 0;
+  for (let i=0;i<7;i++) for (let j=0;j<24;j++) if (grid[i][j]>max) max = grid[i][j];
+
+  const wrap = document.getElementById('heatmapWrap');
+  let html = '<div class="heatmap-grid">';
+  // header row
+  html += '<div></div>';
+  for (let h=0; h<24; h++) {
+    html += `<div class="heatmap-hour-label">${h%3===0 ? String(h).padStart(2,'0') : ''}</div>`;
+  }
+  for (let d=0; d<7; d++) {
+    html += `<div class="heatmap-day-label">${DOW_LABEL[d]}</div>`;
+    for (let h=0; h<24; h++) {
+      const v = grid[d][h];
+      const t = max ? v/max : 0;
+      const bg = v ? _heatColor(t) : 'var(--dark3)';
+      html += `<div class="heatmap-cell" style="background:${bg}" title="${DOW_LABEL[d]} ${String(h).padStart(2,'0')}:00 — ${v} ${_plural(v,'генерация','генерации','генераций')}"></div>`;
+    }
+  }
+  html += '</div>';
+  // legend
+  html += '<div class="heatmap-legend"><span>меньше</span><div class="scale">';
+  for (let i=0; i<5; i++) html += `<span style="background:${_heatColor(i/4)}"></span>`;
+  html += `</div><span>больше</span> · max ${max}</div>`;
+  wrap.innerHTML = html;
+}
+
+function _heatColor(t) {
+  // t: 0..1 → hsl(155, 90%, 12% → 55%)
+  const l = 12 + 43 * t;
+  return `hsl(155, ${75 + 15*t}%, ${l}%)`;
+}
+
+function renderModeDonut() {
+  const rows = _filteredRows();
+  const buckets = { single:0, batch:0, two_views:0 };
+  for (const r of rows) if (buckets[r.mode] !== undefined) buckets[r.mode]++;
+  const total = rows.length;
+  const ctx = document.getElementById('chartMode');
+  if (!ctx) return;
+  const centerText = {
+    id:'centerText',
+    afterDraw(chart){
+      const {ctx, chartArea:{left,right,top,bottom}} = chart;
+      ctx.save();
+      const cx = (left+right)/2, cy=(top+bottom)/2;
+      ctx.fillStyle = '#e6edf3';
+      ctx.font = "700 22px 'Unbounded', sans-serif";
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(total, cx, cy-6);
+      ctx.font = "500 10px 'Golos Text', sans-serif";
+      ctx.fillStyle = '#8b949e';
+      ctx.fillText('всего', cx, cy+14);
+      ctx.restore();
+    }
+  };
+  _adminCharts.mode = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['🖼 Карточка', '📦 Пакет', '✨ 2 ракурса'],
+      datasets: [{
+        data: [buckets.single, buckets.batch, buckets.two_views],
+        backgroundColor: [MODE_COLOR.single, MODE_COLOR.batch, MODE_COLOR.two_views],
+        borderColor: '#161b22', borderWidth: 3, hoverOffset: 8
+      }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false, cutout:'68%',
+      plugins:{ legend:{ position:'bottom', labels:{ usePointStyle:true, padding:12 } } }
+    },
+    plugins: [centerText]
+  });
+}
+
+function renderQualitySplit() {
+  const rows = _filteredRows();
+  const byUser = {};
+  for (const r of rows) {
+    const k = r.user_id || r.user_email || 'u';
+    if (!byUser[k]) byUser[k] = { name: r.user_name||r.user_email||'?', fast:0, pro:0, total:0 };
+    if (r.quality === 'pro') byUser[k].pro++; else byUser[k].fast++;
+    byUser[k].total++;
+  }
+  const top = Object.values(byUser).sort((a,b)=>b.total-a.total).slice(0,8);
+  const ctx = document.getElementById('chartQuality');
+  if (!ctx) return;
+  _adminCharts.quality = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: top.map(u => _shorten(u.name, 14)),
+      datasets: [
+        { label:'⚡ Fast', data:top.map(u=>u.fast), backgroundColor:'rgba(0,194,124,0.85)', borderRadius:4, stack:'q' },
+        { label:'✨ Pro',  data:top.map(u=>u.pro),  backgroundColor:'rgba(167,139,250,0.85)', borderRadius:4, stack:'q' }
+      ]
+    },
+    options: {
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ position:'bottom', labels:{ usePointStyle:true } } },
+      scales:{
+        x:{ stacked:true, grid:{ color:'rgba(48,54,61,0.4)' }, ticks:{ precision:0 } },
+        y:{ stacked:true, grid:{ display:false } }
+      }
+    }
+  });
+}
+
+function renderLeaderboard() {
+  const rows = _filteredRows();
+  const eff = _computeAllEfficiency(rows);
+  const top = eff.slice(0, 10);
+  const maxCount = top[0]?.count || 1;
+  const wrap = document.getElementById('leaderboardList');
+  if (!top.length) { wrap.innerHTML = '<div class="empty-card">Нет данных за выбранный период</div>'; return; }
+  wrap.innerHTML = top.map((u, i) => {
+    const badge = u.score >= 0.8 ? '🏆' : u.score >= 0.5 ? '🥈' : '🥉';
+    const av = avatarColor(u.email);
+    const widthPct = (u.count/maxCount*100).toFixed(0);
+    return `<div class="leader-row" style="--bar:${widthPct}%">
+      <div class="leader-rank ${i<3?'top':''}">#${i+1}</div>
+      <div class="leader-avatar" style="background:${av}">${avatarInitials(u.name, u.email)}</div>
+      <div class="leader-meta">
+        <div class="leader-name">${_esc(u.name)}</div>
+        <div class="leader-email">${_esc(u.email)}</div>
+      </div>
+      <div class="leader-stat">
+        <div class="num">${u.count}</div>
+        <div class="lab">генераций</div>
+      </div>
+      <div class="leader-stat">
+        <div class="num cost">${fmtTg(u.totalCost)}</div>
+        <div class="lab">расход</div>
+      </div>
+      <div class="leader-badge" title="Скор: ${(u.score*100).toFixed(0)}/100">${badge}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderActivityFeed() {
+  const rows = _filteredRows();
+  const recent = rows.slice(0, 20);
+  const wrap = document.getElementById('activityFeed');
+  if (!recent.length) { wrap.innerHTML = '<div class="empty-card">Нет активности</div>'; return; }
+  const now = Date.now();
+  wrap.innerHTML = recent.map(r => {
+    const t = new Date(r.created_at).getTime();
+    const ageMin = (now - t)/60000;
+    const live = ageMin < 5;
+    const av = avatarColor(r.user_email);
+    const name = r.user_name || r.user_email || '—';
+    return `<div class="feed-item">
+      <div class="feed-avatar" style="background:${av}">${avatarInitials(name, r.user_email||'')}</div>
+      <div class="feed-main">
+        <div class="feed-name"><span class="feed-dot ${live?'live':''}"></span>${_esc(name)}</div>
+        <div class="feed-meta">
+          <span class="mode-chip mode-${r.mode}">${(MODE_LABEL[r.mode]||r.mode||'?')}</span>
+          <span class="quality-${r.quality}">${(QUAL_LABEL[r.quality]||r.quality||'')}</span>
+          ${r.product_name ? '· ' + _esc(_shorten(r.product_name, 30)) : ''}
+        </div>
+      </div>
+      <div class="feed-time">${timeAgo(r.created_at)}<br><span style="opacity:0.6">${(r.cost_tenge||0)} тг</span></div>
+    </div>`;
+  }).join('');
+}
+
+function renderEfficiencyTable() {
+  const rows = _filteredRows();
+  const eff = _computeAllEfficiency(rows);
+  const tbody = document.getElementById('efficiencyBody');
+  if (!eff.length) { tbody.innerHTML = '<tr><td colspan="11" class="empty-card">Нет данных</td></tr>'; return; }
+  tbody.innerHTML = eff.map((u, i) => {
+    const cls = u.score >= 0.7 ? 'score-high' : u.score >= 0.4 ? 'score-mid' : 'score-low';
+    const widthPct = (u.score*100).toFixed(0);
+    const proPct = (u.proRatio*100).toFixed(0);
+    return `<tr>
+      <td style="color:var(--text3);font-weight:600">${i+1}</td>
+      <td><div class="eff-name">${_esc(u.name)}</div><div style="font-size:10px;color:var(--text3)">${_esc(u.email)}</div></td>
+      <td class="eff-num">${u.count}</td>
+      <td class="eff-num">${u.activeHours}</td>
+      <td class="eff-num" style="color:var(--green)">${u.genPerHour.toFixed(1)}</td>
+      <td class="eff-num">${u.throughput.toFixed(1)}<span style="font-size:9px;color:var(--text3);font-weight:400"> /час</span></td>
+      <td class="eff-num" style="color:var(--yellow)">${u.costPerGen.toFixed(0)}<span style="font-size:9px;color:var(--text3);font-weight:400"> тг</span></td>
+      <td class="eff-num">${proPct}%</td>
+      <td class="eff-num" style="color:var(--yellow)">${fmtTg(u.totalCost)}</td>
+      <td style="font-size:10px;color:var(--text3);white-space:nowrap">${timeAgo(u.last)}</td>
+      <td><span class="eff-score-pill ${cls}">${widthPct}<span style="font-size:9px;opacity:0.7">/100</span></span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── Computations ──────────────────────────────────
+function _computeAllEfficiency(rows) {
+  const byUser = {};
+  for (const r of rows) {
+    const k = r.user_id || r.user_email || 'u';
+    if (!byUser[k]) byUser[k] = { id:k, name:r.user_name||r.user_email||'?', email:r.user_email||'', rows:[], totalCost:0 };
+    byUser[k].rows.push(r);
+    byUser[k].totalCost += r.cost_tenge||0;
+  }
+  const list = Object.values(byUser).map(u => {
+    const e = computeEfficiency(u.rows);
+    u.last = u.rows[0]?.created_at || null;
+    return Object.assign(u, e);
+  });
+  // Normalize → composite score
+  const maxCount = Math.max(...list.map(u=>u.count), 1);
+  const maxThru  = Math.max(...list.map(u=>u.throughput), 1);
+  const maxCost  = Math.max(...list.map(u=>u.costPerGen), 1);
+  for (const u of list) {
+    const cN = u.count / maxCount;
+    const tN = u.throughput / maxThru;
+    const eN = 1 - (u.costPerGen / maxCost); // меньше стоимость = лучше
+    u.score = 0.5*cN + 0.35*tN + 0.15*Math.max(0, eN);
+  }
+  return list.sort((a,b) => b.score - a.score);
+}
+
+function computeEfficiency(userRows) {
+  const count = userRows.length;
+  const totalCost = userRows.reduce((s,r)=>s+(r.cost_tenge||0),0);
+  const costPerGen = count ? totalCost / count : 0;
+  const proRatio = count ? userRows.filter(r=>r.quality==='pro').length / count : 0;
+  // Active hours: distinct hour buckets
+  const hourSet = new Set();
+  for (const r of userRows) {
+    const d = new Date(r.created_at);
+    hourSet.add(`${d.toISOString().slice(0,10)}-${d.getHours()}`);
+  }
+  const activeHours = hourSet.size || 1;
+  const genPerHour = count / activeHours;
+  // Throughput: разбиваем на сессии gap > 30 мин, средний интервал внутри сессии
+  const sessions = splitSessions(userRows, 1800);
+  const allGaps = [];
+  for (const s of sessions) {
+    if (s.length < 2) continue;
+    for (let i=1; i<s.length; i++) {
+      allGaps.push((new Date(s[i].created_at) - new Date(s[i-1].created_at))/1000);
+    }
+  }
+  const avgGap = allGaps.length ? allGaps.reduce((a,b)=>a+b,0)/allGaps.length : 0;
+  const throughput = avgGap ? 3600/avgGap : 0;
+  return { count, totalCost, costPerGen, proRatio, activeHours, genPerHour, throughput };
+}
+
+function splitSessions(userRows, gapSec) {
+  const sorted = userRows.slice().sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
+  const sessions = [];
+  let cur = [];
+  for (const r of sorted) {
+    if (!cur.length) { cur.push(r); continue; }
+    const gap = (new Date(r.created_at) - new Date(cur[cur.length-1].created_at))/1000;
+    if (gap > gapSec) { sessions.push(cur); cur = [r]; }
+    else cur.push(r);
+  }
+  if (cur.length) sessions.push(cur);
+  return sessions;
+}
+
+// ─── Utils ──────────────────────────────────────────
+function fmtTg(n) {
+  n = Math.round(n||0);
+  return n.toLocaleString('ru-RU').replace(/,/g,' ') + ' тг';
+}
+function avatarInitials(name, email) {
+  const s = (name || email || '?').trim();
+  return s.charAt(0).toUpperCase();
+}
+function avatarColor(seed) {
+  let h = 0; const s = seed||'';
+  for (let i=0;i<s.length;i++) h = (h*31 + s.charCodeAt(i)) >>> 0;
+  return AVATAR_PALETTE[h % AVATAR_PALETTE.length];
+}
+function timeAgo(iso) {
+  if (!iso) return '—';
+  const sec = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (sec < 60) return 'только что';
+  if (sec < 3600) return Math.round(sec/60) + ' мин назад';
+  if (sec < 86400) return Math.round(sec/3600) + ' ч назад';
+  if (sec < 7*86400) return Math.round(sec/86400) + ' дн назад';
+  return new Date(iso).toLocaleDateString('ru-RU', { day:'2-digit', month:'2-digit' });
+}
+function _shorten(s, n) { s = String(s||''); return s.length > n ? s.slice(0,n-1)+'…' : s; }
+function _esc(s) { return String(s||'').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+function _plural(n, one, few, many) {
+  const m10 = n%10, m100 = n%100;
+  if (m10===1 && m100!==11) return one;
+  if (m10>=2 && m10<=4 && (m100<10||m100>=20)) return few;
+  return many;
 }
 
 // ════════════════════════════════════════
