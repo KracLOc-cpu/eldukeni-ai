@@ -211,8 +211,38 @@
   .admin-table td.y { color:var(--yellow); }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
+
+<!-- ═══ LOGIN OVERLAY ═══ -->
+<div id="loginOverlay" style="position:fixed;inset:0;background:var(--dark);z-index:9999;display:flex;align-items:center;justify-content:center">
+  <div style="background:var(--dark2);border:1px solid var(--border);border-radius:20px;padding:40px;width:400px;max-width:92vw">
+    <div style="text-align:center;margin-bottom:28px">
+      <div style="font-family:'Unbounded',sans-serif;font-size:26px;font-weight:700;color:var(--green)">El Dukeni</div>
+      <div style="font-size:13px;color:var(--text2);margin-top:6px">Генератор карточек товаров</div>
+    </div>
+    <div id="loginError" style="display:none;background:rgba(248,81,73,0.1);border:1px solid var(--red);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--red);margin-bottom:16px"></div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px">Email</div>
+      <input id="loginEmail" type="email" placeholder="your@email.com"
+        style="width:100%;padding:11px 14px;background:var(--dark3);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;font-family:'Golos Text',sans-serif;outline:none;transition:border-color 0.2s"
+        onfocus="this.style.borderColor='var(--green)'" onblur="this.style.borderColor='var(--border)'"
+        onkeydown="if(event.key==='Enter')document.getElementById('loginPassword').focus()">
+    </div>
+    <div style="margin-bottom:22px">
+      <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px">Пароль</div>
+      <input id="loginPassword" type="password" placeholder="••••••••"
+        style="width:100%;padding:11px 14px;background:var(--dark3);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;font-family:'Golos Text',sans-serif;outline:none;transition:border-color 0.2s"
+        onfocus="this.style.borderColor='var(--green)'" onblur="this.style.borderColor='var(--border)'"
+        onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button onclick="doLogin()" id="loginBtn"
+      style="width:100%;padding:13px;background:var(--green);color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Golos Text',sans-serif;transition:all 0.2s">
+      Войти
+    </button>
+  </div>
+</div>
 
 <header class="header">
   <div class="logo">El Dukeni <span>— Генератор карточек</span></div>
@@ -221,6 +251,7 @@
     <button class="tab-btn active" onclick="switchTab('batch')" style="background:linear-gradient(135deg,#00C27C,#009960);color:#fff;border-color:transparent">📦 Пакет×50</button>
     <button class="tab-btn" onclick="switchTab('twoviews')">✨ 2 ракурса</button>
     <button class="tab-btn" onclick="switchTab('search')">🔍 Поиск фото</button>
+    <button class="tab-btn" id="adminTabBtn" onclick="openAdminPanel()" style="display:none;background:linear-gradient(135deg,#8B5CF6,#6D28D9);color:#fff;border-color:transparent">👑 Админ</button>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:1px">Размер карточки:</div>
@@ -244,7 +275,19 @@
       </button>
     </div>
   </div>
-  <div class="status-dot"><div class="dot"></div> Система активна</div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <div id="userBadge" style="display:flex;align-items:center;gap:8px">
+      <div id="userAvatar" style="width:30px;height:30px;border-radius:8px;background:var(--green);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:white;flex-shrink:0">?</div>
+      <div>
+        <div id="userName" style="font-size:13px;font-weight:600;color:var(--text);line-height:1.2">...</div>
+        <div id="userRole" style="font-size:10px;color:var(--text3)">загрузка...</div>
+      </div>
+    </div>
+    <button onclick="doLogout()"
+      style="background:transparent;border:1px solid var(--border);color:var(--text3);padding:5px 12px;border-radius:7px;font-size:12px;cursor:pointer;font-family:'Golos Text',sans-serif;transition:all 0.2s"
+      onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'"
+      onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">Выйти</button>
+  </div>
 </header>
 
 <!-- ═══ КАРТОЧКА (одно фото) ═══ -->
@@ -646,22 +689,43 @@
 
 <div class="toast" id="toast"></div>
 
-<!-- ═══ ADMIN PANEL (скрыт, открыть: 5 кликов по логотипу) ═══ -->
+<!-- ═══ ADMIN PANEL ═══ -->
 <div class="admin-overlay" id="adminOverlay" onclick="if(event.target===this)closeAdminPanel()">
-  <div class="admin-box">
+  <div class="admin-box" style="width:720px">
     <div class="admin-title">
-      📊 Статистика генераций
+      👑 Панель администратора
       <button onclick="closeAdminPanel()" style="background:var(--dark3);border:1px solid var(--border);color:var(--text2);width:28px;height:28px;border-radius:7px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
     </div>
-    <div class="admin-kpi" id="adminKpi"></div>
-    <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Последние 7 дней</div>
-    <table class="admin-table">
-      <thead><tr><th>Дата</th><th>Карточка</th><th>Пакет</th><th>2 ракурса</th><th>Итого</th><th>Стоимость</th></tr></thead>
-      <tbody id="adminTableBody"></tbody>
-    </table>
-    <div style="margin-top:16px;display:flex;justify-content:flex-end">
-      <button onclick="clearAdminStats()" style="background:transparent;border:1px solid var(--border);color:var(--text3);padding:7px 14px;border-radius:8px;font-size:12px;cursor:pointer;font-family:'Golos Text',sans-serif">🗑 Очистить статистику</button>
+    <!-- KPI -->
+    <div class="admin-kpi" id="adminKpi">
+      <div style="grid-column:1/-1;text-align:center;color:var(--text3);font-size:12px;padding:10px">Загрузка...</div>
     </div>
+    <!-- Tabs -->
+    <div style="display:flex;gap:4px;margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:12px">
+      <button id="adminTab1" onclick="switchAdminTab(1)"
+        style="padding:6px 16px;border:1px solid var(--green);border-radius:7px;background:var(--green);color:white;font-size:12px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif">
+        👥 Пользователи
+      </button>
+      <button id="adminTab2" onclick="switchAdminTab(2)"
+        style="padding:6px 16px;border:1px solid var(--border);border-radius:7px;background:transparent;color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif">
+        📋 Последние генерации
+      </button>
+    </div>
+    <!-- Users tab -->
+    <div id="adminTabPanel1">
+      <table class="admin-table">
+        <thead><tr><th>Имя</th><th>Email</th><th>Генераций</th><th>Расход</th><th>Последняя</th></tr></thead>
+        <tbody id="adminUsersBody"><tr><td colspan="5" style="text-align:center;color:var(--text3);padding:20px">Загрузка...</td></tr></tbody>
+      </table>
+    </div>
+    <!-- Generations tab -->
+    <div id="adminTabPanel2" style="display:none">
+      <table class="admin-table">
+        <thead><tr><th>Время</th><th>Пользователь</th><th>Режим</th><th>Качество</th><th>Стоимость</th></tr></thead>
+        <tbody id="adminGensBody"><tr><td colspan="5" style="text-align:center;color:var(--text3);padding:20px">Загрузка...</td></tr></tbody>
+      </table>
+    </div>
+    <div style="margin-top:14px;font-size:11px;color:var(--text3);text-align:right">Данные за последние 30 дней</div>
   </div>
 </div>
 
@@ -698,6 +762,90 @@ const FN_URL    = `${SB_URL}/functions/v1/generate-card`;
 const VIEWS_URL = `${SB_URL}/functions/v1/generate-views`;
 const DESC_URL  = `${SB_URL}/functions/v1/generate-description`;
 const SEARCH_URL= `${SB_URL}/functions/v1/search-product`;
+
+// ─── SUPABASE AUTH ───
+const _supabase = window.supabase.createClient(SB_URL, SB_KEY);
+let currentUser    = null;
+let currentProfile = null;
+let currentToken   = SB_KEY; // fallback to anon key
+
+async function initAuth() {
+  const { data: { session } } = await _supabase.auth.getSession();
+  if (session) {
+    await applySession(session);
+  } else {
+    showLoginScreen();
+  }
+  _supabase.auth.onAuthStateChange(async (_event, session) => {
+    if (session) { await applySession(session); }
+    else { showLoginScreen(); }
+  });
+}
+
+async function applySession(session) {
+  currentUser  = session.user;
+  currentToken = session.access_token;
+  // Load profile
+  const { data: prof } = await _supabase.from('profiles').select('*').eq('id', currentUser.id).single();
+  currentProfile = prof;
+  const name = prof?.name || currentUser.email.split('@')[0];
+  const role = prof?.role || 'user';
+  document.getElementById('userAvatar').textContent = name.charAt(0).toUpperCase();
+  document.getElementById('userName').textContent   = name;
+  document.getElementById('userRole').textContent   = role === 'admin' ? '👑 Админ' : '👤 Пользователь';
+  document.getElementById('adminTabBtn').style.display = role === 'admin' ? '' : 'none';
+  document.getElementById('loginOverlay').style.display = 'none';
+}
+
+async function doLogin() {
+  const email    = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const btn      = document.getElementById('loginBtn');
+  const errEl    = document.getElementById('loginError');
+  if (!email || !password) { errEl.textContent = 'Введите email и пароль'; errEl.style.display = 'block'; return; }
+  btn.textContent = 'Вхожу...'; btn.disabled = true; errEl.style.display = 'none';
+  const { error } = await _supabase.auth.signInWithPassword({ email, password });
+  if (error) {
+    errEl.textContent = error.message === 'Invalid login credentials' ? 'Неверный email или пароль' : error.message;
+    errEl.style.display = 'block';
+    btn.textContent = 'Войти'; btn.disabled = false;
+  }
+}
+
+async function doLogout() {
+  await _supabase.auth.signOut();
+  currentUser = null; currentProfile = null; currentToken = SB_KEY;
+  document.getElementById('adminTabBtn').style.display = 'none';
+  showLoginScreen();
+}
+
+function showLoginScreen() {
+  document.getElementById('loginOverlay').style.display = 'flex';
+}
+
+// Логирование генерации в таблицу
+async function logGeneration(mode, data, category) {
+  if (!currentUser) return;
+  const cost = data.cost || {};
+  try {
+    await fetch(`${SB_URL}/rest/v1/generations`, {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'apikey':SB_KEY, 'Authorization':`Bearer ${currentToken}`, 'Prefer':'return=minimal' },
+      body: JSON.stringify({
+        user_id:    currentUser.id,
+        user_email: currentUser.email,
+        user_name:  currentProfile?.name || currentUser.email.split('@')[0],
+        mode, quality: currentQuality,
+        model_used:   data.model_used  || '',
+        zoom_level:   data.zoom_level  || '',
+        product_name: data.product_desc || '',
+        category:     category || '',
+        cost_usd:   cost.total_usd   || 0,
+        cost_tenge: cost.total_tenge || 0
+      })
+    });
+  } catch(e) {}
+}
 
 // Quality mode
 let currentQuality = 'fast';
@@ -1400,134 +1548,95 @@ function showToast(msg, type='success') {
 }
 
 loadSellers();
+initAuth();
 
 // ════════════════════════════════════════
-// ═══════  ADMIN: СЧЁТЧИК ГЕНЕРАЦИЙ (Supabase)  ═════
-// ════════════════════════════════════════════════════
-const COST_USD  = 0.039;
-const COST_TG   = 35;
-const STATS_REST = `${SB_URL}/rest/v1/generation_stats`;
-const STATS_HEADERS = { 'Content-Type': 'application/json', 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` };
+// ═══════  ADMIN PANEL  ══════════════════
+// ════════════════════════════════════════
 
-// Уникальный ID устройства (сохраняется в localStorage)
-function getDeviceId() {
-  let id = localStorage.getItem('eldukeni_device_id');
-  if (!id) { id = 'dev_' + Math.random().toString(36).slice(2, 10); localStorage.setItem('eldukeni_device_id', id); }
-  return id;
-}
+let _adminTab = 1;
+let _adminRows = [];
 
-function trackGeneration(type = 'card') {
-  const category = document.getElementById('cardCategory')?.value
-    || document.getElementById('batchCategory')?.value
-    || document.getElementById('twoCategory')?.value || '';
-  fetch(STATS_REST, {
-    method: 'POST',
-    headers: { ...STATS_HEADERS, 'Prefer': 'return=minimal' },
-    body: JSON.stringify({ gen_type: type, category, device_id: getDeviceId() })
-  }).catch(() => {});
+function switchAdminTab(n) {
+  _adminTab = n;
+  document.getElementById('adminTabPanel1').style.display = n===1 ? '' : 'none';
+  document.getElementById('adminTabPanel2').style.display = n===2 ? '' : 'none';
+  const s1 = { background:'var(--green)', color:'white', borderColor:'var(--green)' };
+  const s2 = { background:'transparent', color:'var(--text2)', borderColor:'var(--border)' };
+  Object.assign(document.getElementById('adminTab1').style, n===1 ? s1 : s2);
+  Object.assign(document.getElementById('adminTab2').style, n===2 ? s1 : s2);
+  if (n===2) renderAdminGens();
 }
 
 function openAdminPanel() {
-  renderAdminStats();
+  if (!currentProfile || currentProfile.role !== 'admin') { showToast('Нет доступа', 'error'); return; }
   document.getElementById('adminOverlay').classList.add('open');
+  renderAdminStats();
 }
 
 function closeAdminPanel() {
   document.getElementById('adminOverlay').classList.remove('open');
 }
 
-async function clearAdminStats() {
-  if (!confirm('Очистить всю статистику генераций?')) return;
-  try {
-    await fetch(`${STATS_REST}?id=gt.0`, { method: 'DELETE', headers: STATS_HEADERS });
-    renderAdminStats();
-    showToast('Статистика очищена', 'success');
-  } catch(e) { showToast('Ошибка: ' + e.message, 'error'); }
-}
-
 async function renderAdminStats() {
   const kpi = document.getElementById('adminKpi');
-  const tbody = document.getElementById('adminTableBody');
   kpi.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--text3);font-size:12px;padding:10px">Загрузка...</div>';
-
   try {
-    // Запрашиваем все записи за последние 30 дней
-    const since = new Date();
-    since.setDate(since.getDate() - 30);
-    const sinceStr = since.toISOString();
+    const since = new Date(); since.setDate(since.getDate()-30);
+    const { data: rows, error } = await _supabase.from('generations')
+      .select('*').gte('created_at', since.toISOString())
+      .order('created_at', { ascending:false }).limit(1000);
+    if (error) throw error;
+    _adminRows = rows || [];
 
-    const r = await fetch(`${STATS_REST}?select=created_at,gen_type&created_at=gte.${sinceStr}&order=created_at.desc&limit=5000`, {
-      headers: STATS_HEADERS
-    });
-    const rows = await r.json();
+    const today   = new Date().toISOString().slice(0,10);
+    const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate()-7);
+    const todayR  = _adminRows.filter(r => r.created_at.startsWith(today));
+    const weekR   = _adminRows.filter(r => new Date(r.created_at) >= weekAgo);
+    const totalTg = _adminRows.reduce((s,r) => s+(r.cost_tenge||0), 0);
 
-    // Группируем по дням
-    const byDay = {};
-    for (const row of rows) {
-      const day = row.created_at.slice(0, 10);
-      if (!byDay[day]) byDay[day] = { card: 0, batch: 0, views: 0 };
-      const t = row.gen_type;
-      if (t === 'card' || t === 'batch' || t === 'views') byDay[day][t]++;
+    kpi.innerHTML = `
+      <div class="admin-kpi-box"><div class="admin-kpi-num">${todayR.length}</div><div class="admin-kpi-label">Сегодня</div><div class="admin-kpi-cost">~${todayR.reduce((s,r)=>s+(r.cost_tenge||0),0)} тг</div></div>
+      <div class="admin-kpi-box"><div class="admin-kpi-num">${weekR.length}</div><div class="admin-kpi-label">7 дней</div><div class="admin-kpi-cost">~${weekR.reduce((s,r)=>s+(r.cost_tenge||0),0)} тг</div></div>
+      <div class="admin-kpi-box"><div class="admin-kpi-num">${_adminRows.length}</div><div class="admin-kpi-label">Всего (30д)</div><div class="admin-kpi-cost">~${Math.round(totalTg)} тг</div></div>
+    `;
+
+    // Users table
+    const byUser = {};
+    for (const r of _adminRows) {
+      const k = r.user_email || 'unknown';
+      if (!byUser[k]) byUser[k] = { name: r.user_name||k, email:k, count:0, cost:0, last:r.created_at };
+      byUser[k].count++;
+      byUser[k].cost += r.cost_tenge||0;
+      if (r.created_at > byUser[k].last) byUser[k].last = r.created_at;
     }
+    const users = Object.values(byUser).sort((a,b)=>b.count-a.count);
+    document.getElementById('adminUsersBody').innerHTML = users.length
+      ? users.map(u=>`<tr>
+          <td style="font-weight:600">${u.name}</td>
+          <td style="color:var(--text3);font-size:11px">${u.email}</td>
+          <td class="g">${u.count}</td>
+          <td class="y">~${Math.round(u.cost)} тг</td>
+          <td style="font-size:11px;color:var(--text3)">${u.last.slice(0,16).replace('T',' ')}</td>
+        </tr>`).join('')
+      : '<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:20px">Нет данных</td></tr>';
 
-    const today = new Date().toISOString().slice(0, 10);
-    const todayData = byDay[today] || { card: 0, batch: 0, views: 0 };
-    const todayCount = todayData.card + todayData.batch + todayData.views;
-
-    // Неделя
-    let weekCount = 0;
-    const weekCutoff = new Date(); weekCutoff.setDate(weekCutoff.getDate() - 6);
-    const weekStr = weekCutoff.toISOString().slice(0, 10);
-    for (const [d, v] of Object.entries(byDay)) {
-      if (d >= weekStr) weekCount += v.card + v.batch + v.views;
-    }
-
-    const allCount = rows.length;
-
-    kpi.innerHTML = [
-      { label: 'Сегодня', n: todayCount },
-      { label: 'Неделя',  n: weekCount  },
-      { label: 'Всего (30д)', n: allCount },
-    ].map(({ label, n }) => `
-      <div class="admin-kpi-box">
-        <div class="admin-kpi-num">${n}</div>
-        <div class="admin-kpi-label">${label}</div>
-        <div class="admin-kpi-cost">~${Math.round(n * COST_TG)} тг / ~$${(n * COST_USD).toFixed(2)}</div>
-      </div>`).join('');
-
-    // Таблица последних 7 дней
-    const tableRows = [];
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(); d.setDate(d.getDate() - i);
-      const ds = d.toISOString().slice(0, 10);
-      const v = byDay[ds] || { card: 0, batch: 0, views: 0 };
-      const total = v.card + v.batch + v.views;
-      const cost = Math.round(total * COST_TG);
-      const label = i === 0 ? 'Сегодня' : i === 1 ? 'Вчера' : ds;
-      tableRows.push(`<tr>
-        <td>${label}</td>
-        <td>${v.card || '—'}</td>
-        <td>${v.batch || '—'}</td>
-        <td>${v.views || '—'}</td>
-        <td class="${total ? 'g' : ''}">${total || '—'}</td>
-        <td class="${cost ? 'y' : ''}">${cost ? '~' + cost + ' тг' : '—'}</td>
-      </tr>`);
-    }
-    tbody.innerHTML = tableRows.join('');
   } catch(e) {
-    kpi.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--red);font-size:12px;padding:10px">Ошибка: ${e.message}</div>`;
+    kpi.innerHTML = `<div style="grid-column:1/-1;color:var(--red);font-size:12px;padding:10px">Ошибка: ${e.message}</div>`;
   }
 }
 
-// Скрытый триггер: 5 кликов по логотипу за 2 секунды
-let _logoClicks = 0, _logoTimer = null;
-document.querySelector('.logo').style.cursor = 'default';
-document.querySelector('.logo').addEventListener('click', () => {
-  _logoClicks++;
-  clearTimeout(_logoTimer);
-  _logoTimer = setTimeout(() => { _logoClicks = 0; }, 2000);
-  if (_logoClicks >= 5) { _logoClicks = 0; openAdminPanel(); }
-});
+function renderAdminGens() {
+  const modeLabel = { single:'🖼 Карточка', two_views:'✨ 2 ракурса', batch:'📦 Пакет' };
+  const qualLabel = { fast:'⚡ Быстрый', pro:'✨ Про' };
+  document.getElementById('adminGensBody').innerHTML = _adminRows.slice(0,50).map(r=>`<tr>
+    <td style="font-size:11px;color:var(--text3)">${r.created_at.slice(0,16).replace('T',' ')}</td>
+    <td style="font-size:12px">${r.user_name||r.user_email||'—'}</td>
+    <td>${modeLabel[r.mode]||r.mode||'—'}</td>
+    <td style="font-size:11px">${qualLabel[r.quality]||r.quality||'—'}</td>
+    <td class="y">~${r.cost_tenge||0} тг</td>
+  </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:20px">Нет данных</td></tr>';
+}
 
 // ════════════════════════════════════════
 // ═══════  ПАКЕТНАЯ ГЕНЕРАЦИЯ  ═══════════
@@ -1784,7 +1893,7 @@ async function startBatchProcessing() {
 
       batchQueue[i].status = 'done';
       batchQueue[i].images = images;
-      trackGeneration('batch');
+      logGeneration('batch', data, category);
 
       addBatchCardToGrid(batchQueue[i], i);
       const bCostInfo = data.cost ? ` | $${data.cost.total_usd.toFixed(4)} (~${data.cost.total_tenge} тг)` : '';
@@ -2019,7 +2128,7 @@ async function generateCard() {
     document.getElementById('card-desc-empty').style.display = 'block';
     const costInfo = data.cost ? ` | $${data.cost.total_usd.toFixed(4)} (~${data.cost.total_tenge} тг)` : '';
     showToast(`Карточка готова ✅${data.model_used ? ' (' + data.model_used.split('-').slice(0,3).join('-') + ')' : ''}${costInfo}`, 'success');
-    trackGeneration('card');
+    logGeneration('single', data, document.getElementById('cardCategory').value);
   } catch(e) {
     document.getElementById('cardLoading').style.display = 'none';
     document.getElementById('cardEmpty').style.display = 'block';
@@ -2109,7 +2218,7 @@ async function generateTwoViews() {
     document.getElementById('two-desc-empty').style.display = 'block';
     const costInfo2 = data.cost ? ` | $${data.cost.total_usd.toFixed(4)} (~${data.cost.total_tenge} тг)` : '';
     showToast(`Готово! 2 ракурса ✅${data.model_used ? ' (' + data.model_used.split('-').slice(0,3).join('-') + ')' : ''}${costInfo2}`, 'success');
-    trackGeneration('views');
+    logGeneration('two_views', data, document.getElementById('twoCategory').value);
   } catch(e) {
     document.getElementById('twoLoading').style.display = 'none';
     document.getElementById('twoEmpty').style.display = 'block';
