@@ -479,9 +479,10 @@
         style="padding:5px 12px;border:none;font-size:11px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif;background:var(--green);color:#fff;transition:all 0.2s">
         ⚡ Быстрый
       </button>
-      <button id="qualityPro" onclick="setQuality('pro')"
-        style="padding:5px 12px;border:none;font-size:11px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif;background:transparent;color:var(--text3);transition:all 0.2s">
-        ✨ Качественный
+      <button id="qualityPro" onclick="requireProQuality()"
+        style="padding:5px 12px;border:none;font-size:11px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif;background:transparent;color:var(--text3);transition:all 0.2s"
+        title="Требует PIN-код администратора">
+        🔒 Качественный
       </button>
     </div>
   </div>
@@ -875,7 +876,7 @@
       <button class="pin-btn" onclick="pinPress(0)">0</button>
       <button class="pin-btn pin-btn-del" onclick="pinDelete()">⌫</button>
     </div>
-    <button onclick="closePinOverlay()" style="margin-top:18px;background:transparent;border:none;color:var(--text3);font-size:12px;cursor:pointer;font-family:'Golos Text',sans-serif">Отмена</button>
+    <button onclick="cancelPinOverlay()" style="margin-top:18px;background:transparent;border:none;color:var(--text3);font-size:12px;cursor:pointer;font-family:'Golos Text',sans-serif">Отмена</button>
   </div>
 </div>
 
@@ -1191,10 +1192,25 @@ function setQuality(q) {
   if (q === 'fast') {
     fast.style.background = 'var(--green)'; fast.style.color = '#fff';
     pro.style.background = 'transparent'; pro.style.color = 'var(--text3)';
+    pro.textContent = '🔒 Качественный';
   } else {
     pro.style.background = 'linear-gradient(135deg,#8B5CF6,#6D28D9)'; pro.style.color = '#fff';
     fast.style.background = 'transparent'; fast.style.color = 'var(--text3)';
+    pro.textContent = '✨ Качественный';
   }
+}
+
+// Качественный режим — только с PIN-кодом
+function requireProQuality() {
+  if (currentQuality === 'pro') {
+    // Уже включён — просто выключить обратно на fast
+    setQuality('fast');
+    return;
+  }
+  requirePin(() => {
+    setQuality('pro');
+    showToast('✨ Качественный режим включён', 'success');
+  });
 }
 const LENS_URL    = `${SB_URL}/functions/v1/lens-search`;
 const PROCESS_URL = `${SB_URL}/functions/v1/process-found-image`;
@@ -1949,13 +1965,19 @@ function closePinOverlay() {
   document.getElementById('pinOverlay').style.display = 'none';
   document.removeEventListener('keydown', _pinKeyHandler);
   _pinBuffer = '';
+  // _pinTarget НЕ обнуляем — его обнуляет _checkPin уже после вызова callback
+}
+
+function cancelPinOverlay() {
+  // Отмена пользователем — сбрасываем всё
   _pinTarget = null;
+  closePinOverlay();
 }
 
 function _pinKeyHandler(e) {
   if (e.key >= '0' && e.key <= '9') { pinPress(parseInt(e.key)); return; }
   if (e.key === 'Backspace') { pinDelete(); return; }
-  if (e.key === 'Escape')    { closePinOverlay(); return; }
+  if (e.key === 'Escape')    { cancelPinOverlay(); return; }
 }
 
 function pinPress(digit) {
