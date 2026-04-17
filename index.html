@@ -1138,7 +1138,7 @@ function showLoginScreen() {
 }
 
 // Логирование генерации в таблицу
-async function logGeneration(mode, data, category) {
+async function logGeneration(mode, data, category, productName) {
   if (!currentUser) return;
   const cost = data.cost || {};
   try {
@@ -1152,13 +1152,13 @@ async function logGeneration(mode, data, category) {
         mode, quality: currentQuality,
         model_used:   data.model_used  || '',
         zoom_level:   data.zoom_level  || '',
-        product_name: data.product_desc || '',
+        product_name: productName || data.product_desc || '',
         category:     category || '',
         cost_usd:   cost.total_usd   || 0,
         cost_tenge: cost.total_tenge || 0
       })
     });
-  } catch(e) {}
+  } catch(e) { console.warn('logGeneration failed:', e); }
 }
 
 // Quality mode
@@ -2840,6 +2840,10 @@ async function startBatchProcessing() {
       const data = await r.json();
       if (!data.success) throw new Error(data.error || 'Ошибка генерации');
 
+      // Логируем сразу после успешного ответа API — чтобы расход Gemini
+      // был зафиксирован даже если дальше split упадёт.
+      logGeneration('batch', data, category, batchQueue[i].name);
+
       const mime = data.mime || 'image/png';
 
       // Показать результат 1×2
@@ -2856,7 +2860,6 @@ async function startBatchProcessing() {
 
       batchQueue[i].status = 'done';
       batchQueue[i].images = images;
-      logGeneration('batch', data, category);
 
       addBatchCardToGrid(batchQueue[i], i);
       const bCostInfo = data.cost ? ` | $${data.cost.total_usd.toFixed(4)} (~${data.cost.total_tenge} тг)` : '';
@@ -2961,8 +2964,8 @@ async function generateDescription(tab) {
   const photoB64    = tab === 'card' ? cardPhotoB64    : twoPhotoB64;
   const photoMime   = tab === 'card' ? cardPhotoMime   : twoPhotoMime;
   const category    = tab === 'card'
-    ? document.getElementById('cardCategory').value
-    : document.getElementById('twoCategory').value;
+    ? (document.getElementById('cardCategory')?.value || '')
+    : (document.getElementById('twoCategory')?.value  || '');
   const chars       = document.getElementById(`${tab}-char-input`).value.trim();
   const btn         = document.getElementById(`${tab}-desc-btn`);
 
@@ -3066,7 +3069,7 @@ async function generateCard() {
     cardPhotoB64 = b64;
     cardPhotoMime = cardFile.type;
     const name = document.getElementById('cardProductName').value.trim();
-    const category = '';
+    const category = document.getElementById('cardCategory')?.value || '';
     const r = await fetch(VIEWS_URL, {
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`,'apikey':SB_KEY},
@@ -3091,7 +3094,7 @@ async function generateCard() {
     document.getElementById('card-desc-empty').style.display = 'block';
     const costInfo = data.cost ? ` | $${data.cost.total_usd.toFixed(4)} (~${data.cost.total_tenge} тг)` : '';
     showToast(`Карточка готова ✅${data.model_used ? ' (' + data.model_used.split('-').slice(0,3).join('-') + ')' : ''}${costInfo}`, 'success');
-    logGeneration('single', data, document.getElementById('cardCategory').value);
+    logGeneration('single', data, category, name);
   } catch(e) {
     document.getElementById('cardLoading').style.display = 'none';
     document.getElementById('cardEmpty').style.display = 'block';
@@ -3157,7 +3160,7 @@ async function generateTwoViews() {
     twoPhotoB64 = b64;
     twoPhotoMime = twoFile.type;
     const name = document.getElementById('twoProductName').value.trim();
-    const category = '';
+    const category = document.getElementById('twoCategory')?.value || '';
     const r = await fetch(VIEWS_URL, {
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`,'apikey':SB_KEY},
@@ -3181,7 +3184,7 @@ async function generateTwoViews() {
     document.getElementById('two-desc-empty').style.display = 'block';
     const costInfo2 = data.cost ? ` | $${data.cost.total_usd.toFixed(4)} (~${data.cost.total_tenge} тг)` : '';
     showToast(`Готово! 2 ракурса ✅${data.model_used ? ' (' + data.model_used.split('-').slice(0,3).join('-') + ')' : ''}${costInfo2}`, 'success');
-    logGeneration('two_views', data, document.getElementById('twoCategory').value);
+    logGeneration('two_views', data, category, name);
   } catch(e) {
     document.getElementById('twoLoading').style.display = 'none';
     document.getElementById('twoEmpty').style.display = 'block';
