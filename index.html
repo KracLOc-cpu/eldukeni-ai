@@ -1200,7 +1200,7 @@ function setQuality(q) {
   }
 }
 
-// Качественный режим — только с PIN-кодом
+// Качественный режим — PIN спрашивается каждый раз (alwaysAsk = true)
 function requireProQuality() {
   if (currentQuality === 'pro') {
     // Уже включён — просто выключить обратно на fast
@@ -1210,7 +1210,7 @@ function requireProQuality() {
   requirePin(() => {
     setQuality('pro');
     showToast('✨ Качественный режим включён', 'success');
-  });
+  }, true); // true = не пропускать сессию, PIN каждый раз
 }
 const LENS_URL    = `${SB_URL}/functions/v1/lens-search`;
 const PROCESS_URL = `${SB_URL}/functions/v1/process-found-image`;
@@ -1945,9 +1945,9 @@ const PIN_SESSION_KEY = 'admin_pin_ok';
 let _pinBuffer = '';
 let _pinTarget = null; // callback после успешного ввода
 
-function requirePin(callback) {
-  // Проверяем сессию — если уже вводил PIN в этой сессии, пропускаем
-  if (sessionStorage.getItem(PIN_SESSION_KEY) === 'yes') {
+function requirePin(callback, alwaysAsk) {
+  // alwaysAsk = true → не проверяем сессию, PIN каждый раз (для качественного режима)
+  if (!alwaysAsk && sessionStorage.getItem(PIN_SESSION_KEY) === 'yes') {
     callback();
     return;
   }
