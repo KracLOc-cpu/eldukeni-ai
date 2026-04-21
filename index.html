@@ -190,6 +190,19 @@
   .toast.success { border-color:var(--green); }
   .toast.error { border-color:var(--red); }
 
+  .bg-select {
+    width:100%; padding:9px 12px; border-radius:9px;
+    background:var(--dark2); border:1px solid var(--border);
+    color:var(--text); font-size:13px; font-weight:600;
+    font-family:'Golos Text',sans-serif; cursor:pointer;
+    transition:border-color 0.2s;
+    appearance:none; -webkit-appearance:none; -moz-appearance:none;
+    background-image:url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b949e' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e");
+    background-repeat:no-repeat; background-position:right 12px center; padding-right:34px;
+  }
+  .bg-select:hover, .bg-select:focus { border-color:var(--green); outline:none; }
+  .bg-select option { background:var(--dark2); color:var(--text); }
+
   ::-webkit-scrollbar { width:5px; }
   ::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
 
@@ -518,10 +531,7 @@
       </div>
       <div style="margin-top:8px">
         <div style="font-size:11px;color:var(--text3);margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:1px">Стиль фона</div>
-        <div style="display:flex;gap:6px">
-          <button id="cardBgWhiteBtn" onclick="setCardBgStyle('white')" style="flex:1;padding:7px 4px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif;border:1px solid var(--green);background:rgba(0,194,124,0.15);color:var(--green);transition:all 0.2s">⬜ Белый фон</button>
-          <button id="cardBgStyledBtn" onclick="setCardBgStyle('styled')" style="flex:1;padding:7px 4px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif;border:1px solid var(--border);background:transparent;color:var(--text2);transition:all 0.2s">🏠 Интерьер</button>
-        </div>
+        <select id="cardBgSelect" onchange="setCardBg(this.value)" class="bg-select"></select>
       </div>
       <button class="btn-primary" id="cardGenBtn" onclick="generateCard()" disabled style="width:100%;margin-top:12px;justify-content:center">
         🖼 Сгенерировать карточку
@@ -605,8 +615,7 @@
       <div style="padding:0 16px 10px">
         <div style="font-size:11px;color:var(--text3);margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:1px">Стиль фона</div>
         <div style="display:flex;gap:6px">
-          <button id="batchBgWhiteBtn" onclick="setBatchBgStyle('white')" style="flex:1;padding:7px 4px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif;border:1px solid var(--green);background:rgba(0,194,124,0.15);color:var(--green);transition:all 0.2s">⬜ Белый фон</button>
-          <button id="batchBgStyledBtn" onclick="setBatchBgStyle('styled')" style="flex:1;padding:7px 4px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif;border:1px solid var(--border);background:transparent;color:var(--text2);transition:all 0.2s">🏠 Интерьер</button>
+          <select id="batchBgSelect" onchange="setBatchBg(this.value)" class="bg-select" style="flex:1"></select>
         </div>
       </div>
 
@@ -729,8 +738,7 @@
       <div style="margin-top:8px">
         <div style="font-size:11px;color:var(--text3);margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:1px">Стиль фона</div>
         <div style="display:flex;gap:6px">
-          <button id="twoBgWhiteBtn" onclick="setTwoBgStyle('white')" style="flex:1;padding:7px 4px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif;border:1px solid var(--green);background:rgba(0,194,124,0.15);color:var(--green);transition:all 0.2s">⬜ Белый фон</button>
-          <button id="twoBgStyledBtn" onclick="setTwoBgStyle('styled')" style="flex:1;padding:7px 4px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif;border:1px solid var(--border);background:transparent;color:var(--text2);transition:all 0.2s">🏠 Интерьер</button>
+          <select id="twoBgSelect" onchange="setTwoBg(this.value)" class="bg-select" style="flex:1"></select>
         </div>
       </div>
       <button class="btn-primary" id="twoGenBtn" onclick="generateTwoViews()" disabled style="width:100%;margin-top:12px;justify-content:center">
@@ -1018,6 +1026,28 @@
         </div>
       </div>
 
+      <!-- Модели и стоимость -->
+      <div class="admin-card span-12">
+        <div class="admin-card-head">
+          <div class="admin-card-title"><span class="icon">💰</span> Модели и стоимость</div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="admin-card-hint">цены, активность, суммарный расход по моделям</div>
+            <button onclick="openModelPricesEditor()" style="background:var(--dark3);border:1px solid var(--border);color:var(--text2);padding:6px 12px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif">✏ Редактировать цены</button>
+          </div>
+        </div>
+        <div class="eff-table-wrap">
+          <table class="eff-table" id="modelsTable">
+            <thead><tr>
+              <th>Модель</th><th>Для режима</th><th>Статус</th>
+              <th>Цена/вызов</th><th>Вызовов</th><th>Итого</th><th>% расхода</th>
+            </tr></thead>
+            <tbody id="modelsTableBody">
+              <tr><td colspan="7" class="empty-card">Загрузка...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <!-- Efficiency table -->
       <div class="admin-card span-12">
         <div class="admin-card-head">
@@ -1038,6 +1068,27 @@
         </div>
       </div>
 
+    </div>
+  </div>
+</div>
+
+<!-- ═══ МОДАЛ: Редактор цен моделей ═══ -->
+<div id="modelPricesModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:300;overflow-y:auto;padding:24px 16px">
+  <div style="max-width:720px;margin:0 auto;background:var(--dark2);border:1px solid var(--border);border-radius:16px;overflow:hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)">
+      <div>
+        <div style="font-family:'Unbounded',sans-serif;font-size:16px;font-weight:700">💰 Цены моделей</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">Редактируй цены, включай/выключай модели и выбирай основную для режима. Кэш edge-функции — 5 минут.</div>
+      </div>
+      <button onclick="closeModelPricesEditor()" style="background:var(--dark3);border:1px solid var(--border);color:var(--text2);width:32px;height:32px;border-radius:8px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
+    </div>
+    <div id="modelPricesBody" style="padding:16px 20px;max-height:65vh;overflow-y:auto"></div>
+    <div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:10px;align-items:center;background:var(--dark3)">
+      <div style="flex:1;font-size:11px;color:var(--text3);line-height:1.5">
+        <b style="color:var(--yellow)">⚠</b> Только одна модель может быть «основной» для каждого режима. Edge-функция всегда берёт основную + fallback на остальные активные.
+      </div>
+      <button onclick="closeModelPricesEditor()" style="background:var(--dark3);border:1px solid var(--border);color:var(--text2);padding:10px 18px;border-radius:10px;font-size:13px;cursor:pointer;font-family:'Golos Text',sans-serif">Отмена</button>
+      <button id="modelPricesSaveBtn" onclick="saveModelPrices()" style="background:var(--green);color:#fff;border:none;padding:10px 22px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Golos Text',sans-serif">💾 Сохранить</button>
     </div>
   </div>
 </div>
@@ -1164,26 +1215,53 @@ async function logGeneration(mode, data, category, productName) {
 // Quality mode
 let currentQuality = 'fast';
 
-// Стиль фона: 'white' = чистый белый, 'styled' = фон по категории (интерьер/мрамор и т.д.)
-let cardBgStyle = 'white';
-let twoBgStyle  = 'white';
-let batchBgStyle = 'white';
+// ─── Пресеты фонов ────────────────────────────────────────────
+// id — улетает на edge-функцию как bg_preset. Label — для дропдауна.
+// Пресеты по категориям товаров
+const BG_PRESETS = [
+  { id: 'white',       label: '⬜ Белый' },
+  { id: 'clothing',    label: '👕 Одежда' },
+  { id: 'shoes',       label: '👟 Обувь' },
+  { id: 'toys',        label: '🧸 Игрушки' },
+  { id: 'kitchenware', label: '🍽 Посуда' },
+  { id: 'cosmetics',   label: '💄 Косметика' },
+  { id: 'electronics', label: '📱 Электроника' },
+  { id: 'furniture',   label: '🛋 Мебель' },
+  { id: 'food',        label: '🥐 Еда' },
+  { id: 'sports',      label: '🏋 Спорт' },
+  { id: 'tools',       label: '🔧 Инструменты' },
+  { id: 'pets',        label: '🐾 Для животных' },
+];
 
-function _applyBgBtns(whiteId, styledId, style) {
-  const wBtn = document.getElementById(whiteId);
-  const sBtn = document.getElementById(styledId);
-  if (!wBtn || !sBtn) return;
-  if (style === 'white') {
-    wBtn.style.borderColor = 'var(--green)'; wBtn.style.background = 'rgba(0,194,124,0.15)'; wBtn.style.color = 'var(--green)';
-    sBtn.style.borderColor = 'var(--border)'; sBtn.style.background = 'transparent'; sBtn.style.color = 'var(--text2)';
-  } else {
-    sBtn.style.borderColor = 'var(--green)'; sBtn.style.background = 'rgba(0,194,124,0.15)'; sBtn.style.color = 'var(--green)';
-    wBtn.style.borderColor = 'var(--border)'; wBtn.style.background = 'transparent'; wBtn.style.color = 'var(--text2)';
-  }
+let cardBg  = 'white';
+let twoBg   = 'white';
+let batchBg = 'white';
+
+function _fillBgSelect(id, currentVal) {
+  const sel = document.getElementById(id);
+  if (!sel) return;
+  sel.innerHTML = BG_PRESETS.map(p =>
+    `<option value="${p.id}" ${p.id===currentVal?'selected':''}>${p.label}</option>`
+  ).join('');
 }
-function setCardBgStyle(s)  { cardBgStyle  = s; _applyBgBtns('cardBgWhiteBtn',  'cardBgStyledBtn',  s); }
-function setTwoBgStyle(s)   { twoBgStyle   = s; _applyBgBtns('twoBgWhiteBtn',   'twoBgStyledBtn',   s); }
-function setBatchBgStyle(s) { batchBgStyle = s; _applyBgBtns('batchBgWhiteBtn', 'batchBgStyledBtn', s); }
+
+function _initBgSelects() {
+  _fillBgSelect('cardBgSelect',  cardBg);
+  _fillBgSelect('twoBgSelect',   twoBg);
+  _fillBgSelect('batchBgSelect', batchBg);
+}
+document.addEventListener('DOMContentLoaded', _initBgSelects);
+// на случай если DOMContentLoaded уже выстрелил
+if (document.readyState !== 'loading') _initBgSelects();
+
+function setCardBg(v)  { cardBg  = v || 'white'; }
+function setTwoBg(v)   { twoBg   = v || 'white'; }
+function setBatchBg(v) { batchBg = v || 'white'; }
+
+// backward-compat: некоторые части кода могут ожидать старое API
+function setCardBgStyle(s)  { setCardBg(s === 'styled' ? 'living_room' : 'white'); _fillBgSelect('cardBgSelect',  cardBg);  }
+function setTwoBgStyle(s)   { setTwoBg(s  === 'styled' ? 'living_room' : 'white'); _fillBgSelect('twoBgSelect',   twoBg);   }
+function setBatchBgStyle(s) { setBatchBg(s=== 'styled' ? 'living_room' : 'white'); _fillBgSelect('batchBgSelect', batchBg); }
 
 function setQuality(q) {
   currentQuality = q;
@@ -1940,7 +2018,7 @@ initAuth();
 // ═══════  PIN CODE  ══════════════════════
 // ════════════════════════════════════════
 
-const ADMIN_PIN = '9015'; // ← смени на свой PIN
+const ADMIN_PIN = '1234'; // ← смени на свой PIN
 const PIN_SESSION_KEY = 'admin_pin_ok';
 let _pinBuffer = '';
 let _pinTarget = null; // callback после успешного ввода
@@ -2152,6 +2230,7 @@ function renderAll() {
   renderQualitySplit();
   renderLeaderboard();
   renderActivityFeed();
+  renderModelsTable();
   renderEfficiencyTable();
 }
 
@@ -2474,6 +2553,184 @@ function renderActivityFeed() {
       <div class="feed-time">${timeAgo(r.created_at)}<br><span style="opacity:0.6">${(r.cost_tenge||0)} тг</span></div>
     </div>`;
   }).join('');
+}
+
+// ═══ Таблица "Модели и стоимость" ═══════════════════
+let _modelPricesCache = null;
+
+async function _loadModelPrices(force) {
+  if (_modelPricesCache && !force) return _modelPricesCache;
+  try {
+    const { data, error } = await _supabase
+      .from('model_prices')
+      .select('*')
+      .order('sort_order', { ascending: true });
+    if (error) throw error;
+    _modelPricesCache = data || [];
+    return _modelPricesCache;
+  } catch(e) {
+    console.warn('[model_prices] load failed:', e);
+    return [];
+  }
+}
+
+async function renderModelsTable() {
+  const tbody = document.getElementById('modelsTableBody');
+  if (!tbody) return;
+  const rows = _filteredRows();
+  const prices = await _loadModelPrices();
+  if (!prices.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-card">Нет данных о ценах</td></tr>';
+    return;
+  }
+
+  // Счётчики по фактически использованной модели
+  const usage = {};          // model_slug -> { calls, cost_tenge }
+  let totalCostTg = 0;
+  for (const r of rows) {
+    const m = r.model_used || '—';
+    if (!usage[m]) usage[m] = { calls: 0, cost_tenge: 0 };
+    usage[m].calls++;
+    usage[m].cost_tenge += r.cost_tenge || 0;
+    totalCostTg += r.cost_tenge || 0;
+  }
+
+  // Объединяем: все модели из БД + любые model_used из логов, которых нет в БД
+  const known = new Set(prices.map(p => p.model_slug));
+  const extra = Object.keys(usage).filter(m => m !== '—' && !known.has(m))
+    .map(m => ({ model_slug: m, display_name: m, quality_for: null, is_primary: false, cost_usd: null, is_active: null, sort_order: 999, notes: 'Не в справочнике цен' }));
+
+  const all = prices.concat(extra);
+
+  tbody.innerHTML = all.map(p => {
+    const u = usage[p.model_slug] || { calls: 0, cost_tenge: 0 };
+    const pct = totalCostTg ? (u.cost_tenge / totalCostTg * 100) : 0;
+    const priceTg = p.cost_usd != null ? Math.round(p.cost_usd * 500) : null;
+    const priceCell = p.cost_usd != null
+      ? `$${Number(p.cost_usd).toFixed(4)} <span style="color:var(--text3);font-size:10px">(~${priceTg} тг)</span>`
+      : '<span style="color:var(--text3)">—</span>';
+    let status;
+    if (p.is_active === false) status = '<span style="color:var(--text3);font-size:11px">⛔ Отключена</span>';
+    else if (p.is_active === null) status = '<span style="color:var(--yellow);font-size:11px">⚠ Вне справочника</span>';
+    else if (p.is_primary) status = '<span style="color:var(--green);font-size:11px;font-weight:600">★ Основная</span>';
+    else status = '<span style="color:var(--text2);font-size:11px">✅ Активна</span>';
+    const modeLabel = p.quality_for === 'pro'
+      ? '<span style="background:linear-gradient(135deg,#8B5CF6,#6D28D9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-weight:600">✨ Pro</span>'
+      : p.quality_for === 'fast'
+        ? '<span style="color:var(--green);font-weight:600">⚡ Fast</span>'
+        : '<span style="color:var(--text3)">—</span>';
+    return `<tr title="${_esc(p.notes || '')}">
+      <td><div class="eff-name">${_esc(p.display_name || p.model_slug)}</div><div style="font-size:10px;color:var(--text3);font-family:monospace">${_esc(p.model_slug)}</div></td>
+      <td>${modeLabel}</td>
+      <td>${status}</td>
+      <td class="eff-num" style="white-space:nowrap">${priceCell}</td>
+      <td class="eff-num">${u.calls}</td>
+      <td class="eff-num" style="color:var(--yellow)">${fmtTg(u.cost_tenge)}</td>
+      <td class="eff-num" style="color:${pct >= 50 ? 'var(--red)' : pct >= 20 ? 'var(--yellow)' : 'var(--text2)'}">${pct.toFixed(1)}%</td>
+    </tr>`;
+  }).join('');
+}
+
+async function openModelPricesEditor() {
+  if (!currentProfile || currentProfile.role !== 'admin') {
+    showToast('Только для администраторов', 'error');
+    return;
+  }
+  const prices = await _loadModelPrices(true);
+  const modal = document.getElementById('modelPricesModal');
+  const body  = document.getElementById('modelPricesBody');
+  body.innerHTML = prices.map((p, idx) => `
+    <div style="background:var(--dark3);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px" data-slug="${_esc(p.model_slug)}" data-idx="${idx}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:10px">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:700;color:var(--text)">${_esc(p.display_name || p.model_slug)}</div>
+          <div style="font-size:11px;color:var(--text3);font-family:monospace;margin-top:2px">${_esc(p.model_slug)}</div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <span style="font-size:10px;padding:3px 8px;border-radius:12px;background:${p.quality_for==='pro'?'rgba(139,92,246,0.15)':p.quality_for==='fast'?'rgba(0,194,124,0.15)':'var(--dark2)'};color:${p.quality_for==='pro'?'#a78bfa':p.quality_for==='fast'?'var(--green)':'var(--text3)'};font-weight:600">${p.quality_for?p.quality_for.toUpperCase():'—'}</span>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
+        <div>
+          <label style="font-size:11px;color:var(--text2);font-weight:600;display:block;margin-bottom:4px">Цена за вызов ($)</label>
+          <input type="number" step="0.0001" min="0" value="${p.cost_usd}" data-field="cost_usd"
+            style="width:100%;background:var(--dark2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;color:var(--text);font-family:'Golos Text',sans-serif"
+            oninput="_mpOnPriceChange(this)">
+          <div style="font-size:10px;color:var(--text3);margin-top:3px" class="mp-price-tg">~${Math.round(p.cost_usd*500)} тг</div>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text2);font-weight:600;display:block;margin-bottom:4px">Режим</label>
+          <select data-field="quality_for" style="width:100%;background:var(--dark2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;color:var(--text);font-family:'Golos Text',sans-serif">
+            <option value="" ${!p.quality_for?'selected':''}>— (не используется)</option>
+            <option value="fast" ${p.quality_for==='fast'?'selected':''}>⚡ Fast</option>
+            <option value="pro"  ${p.quality_for==='pro' ?'selected':''}>✨ Pro</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:16px;margin-bottom:8px">
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text);cursor:pointer">
+          <input type="checkbox" data-field="is_active" ${p.is_active?'checked':''} style="accent-color:var(--green)"> Активна
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text);cursor:pointer">
+          <input type="checkbox" data-field="is_primary" ${p.is_primary?'checked':''} style="accent-color:var(--green)"> Основная для режима
+        </label>
+      </div>
+
+      <div>
+        <label style="font-size:11px;color:var(--text2);font-weight:600;display:block;margin-bottom:4px">Заметка</label>
+        <input type="text" value="${_esc(p.notes||'')}" data-field="notes" maxlength="500"
+          style="width:100%;background:var(--dark2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12px;color:var(--text);font-family:'Golos Text',sans-serif">
+      </div>
+    </div>
+  `).join('');
+  modal.style.display = 'block';
+}
+
+function _mpOnPriceChange(inp) {
+  const v = parseFloat(inp.value) || 0;
+  const card = inp.closest('[data-slug]');
+  const tg = card.querySelector('.mp-price-tg');
+  if (tg) tg.textContent = '~' + Math.round(v*500) + ' тг';
+}
+
+function closeModelPricesEditor() {
+  document.getElementById('modelPricesModal').style.display = 'none';
+}
+
+async function saveModelPrices() {
+  const cards = document.querySelectorAll('#modelPricesBody [data-slug]');
+  const btn = document.getElementById('modelPricesSaveBtn');
+  btn.disabled = true;
+  btn.textContent = 'Сохраняю...';
+  try {
+    const updates = [];
+    for (const c of cards) {
+      const slug = c.dataset.slug;
+      const patch = { model_slug: slug };
+      c.querySelectorAll('[data-field]').forEach(el => {
+        const f = el.dataset.field;
+        if (el.type === 'checkbox')    patch[f] = el.checked;
+        else if (f === 'cost_usd')     patch[f] = parseFloat(el.value) || 0;
+        else if (f === 'quality_for')  patch[f] = el.value || null;
+        else                           patch[f] = el.value;
+      });
+      updates.push(patch);
+    }
+    // Upsert batch
+    const { error } = await _supabase.from('model_prices').upsert(updates, { onConflict: 'model_slug' });
+    if (error) throw error;
+    _modelPricesCache = null; // инвалидируем кэш
+    await renderModelsTable();
+    closeModelPricesEditor();
+    showToast('✅ Цены сохранены. Edge-функция подхватит через ~5 мин (кэш).', 'success');
+  } catch(e) {
+    showToast('Ошибка: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '💾 Сохранить';
+  }
 }
 
 function renderEfficiencyTable() {
@@ -2835,7 +3092,7 @@ async function startBatchProcessing() {
       const r = await fetch(VIEWS_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SB_KEY}`, 'apikey': SB_KEY },
-        body: JSON.stringify({ photo_base64: b64, photo_mime: batchQueue[i].file.type, product_name: '', category, mode: 'two_views', quality: currentQuality, bg_style: batchBgStyle })
+        body: JSON.stringify({ photo_base64: b64, photo_mime: batchQueue[i].file.type, product_name: '', category, mode: 'two_views', quality: currentQuality, bg_style: batchBg === 'white' ? 'white' : 'styled', bg_preset: batchBg })
       });
       const data = await r.json();
       if (!data.success) throw new Error(data.error || 'Ошибка генерации');
@@ -3073,7 +3330,7 @@ async function generateCard() {
     const r = await fetch(VIEWS_URL, {
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`,'apikey':SB_KEY},
-      body: JSON.stringify({ photo_base64:b64, photo_mime:cardFile.type, product_name:name, category, mode:'single', quality: currentQuality, bg_style: cardBgStyle })
+      body: JSON.stringify({ photo_base64:b64, photo_mime:cardFile.type, product_name:name, category, mode:'single', quality: currentQuality, bg_style: cardBg === 'white' ? 'white' : 'styled', bg_preset: cardBg })
     });
     const data = await r.json();
     if (!data.success) throw new Error(data.error || 'Ошибка');
@@ -3164,7 +3421,7 @@ async function generateTwoViews() {
     const r = await fetch(VIEWS_URL, {
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`,'apikey':SB_KEY},
-      body: JSON.stringify({ photo_base64:b64, photo_mime:twoFile.type, product_name:name, category, mode:'two_views', quality: currentQuality, bg_style: twoBgStyle })
+      body: JSON.stringify({ photo_base64:b64, photo_mime:twoFile.type, product_name:name, category, mode:'two_views', quality: currentQuality, bg_style: twoBg === 'white' ? 'white' : 'styled', bg_preset: twoBg })
     });
     const data = await r.json();
     if (!data.success) throw new Error(data.error || 'Ошибка');
