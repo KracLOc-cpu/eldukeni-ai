@@ -926,6 +926,7 @@
         <option value="all">Все пользователи</option>
       </select>
       <div class="filter-spacer"></div>
+      <button id="manageAccessBtn" onclick="document.getElementById('accessControlCard').scrollIntoView({behavior:'smooth',block:'start'});renderAccessControl(true)" title="Управление доступом" style="display:none;background:var(--dark3);border:1px solid var(--border);color:var(--text2);padding:6px 12px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif;margin-right:8px">🔐 Доступы</button>
       <button class="filter-refresh" id="adminRefreshBtn" onclick="loadAdminData(true)" title="Обновить">↻</button>
     </div>
 
@@ -1032,7 +1033,7 @@
           <div class="admin-card-title"><span class="icon">💰</span> Модели и стоимость</div>
           <div style="display:flex;align-items:center;gap:10px">
             <div class="admin-card-hint">цены, активность, суммарный расход по моделям</div>
-            <button onclick="openModelPricesEditor()" style="background:var(--dark3);border:1px solid var(--border);color:var(--text2);padding:6px 12px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif">✏ Редактировать цены</button>
+            <button id="editPricesBtn" onclick="openModelPricesEditor()" style="background:var(--dark3);border:1px solid var(--border);color:var(--text2);padding:6px 12px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif;display:none">✏ Редактировать цены</button>
           </div>
         </div>
         <div class="eff-table-wrap">
@@ -1065,6 +1066,34 @@
               <tr><td colspan="11" class="empty-card">Загрузка...</td></tr>
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- Access control (only visible to admin) -->
+      <div class="admin-card span-12" id="accessControlCard" style="display:none">
+        <div class="admin-card-head">
+          <div class="admin-card-title"><span class="icon">🔐</span> Управление доступом</div>
+          <div class="admin-card-hint">выдавайте роль <b>viewer</b> сотрудникам, чтобы они видели весь дашборд (но не могли менять цены)</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;padding:0 14px 12px;flex-wrap:wrap">
+          <input type="text" id="accessSearchInput" placeholder="🔍 Поиск по имени или email" oninput="renderAccessControl()"
+            style="flex:1;min-width:220px;background:var(--dark3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--text);font-family:'Golos Text',sans-serif">
+          <button onclick="renderAccessControl(true)" style="background:var(--dark3);border:1px solid var(--border);color:var(--text2);padding:8px 14px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif">↻ Обновить</button>
+        </div>
+        <div class="eff-table-wrap">
+          <table class="eff-table" id="accessTable">
+            <thead><tr>
+              <th>Имя</th><th>Email</th><th>Текущая роль</th><th style="text-align:right">Действие</th>
+            </tr></thead>
+            <tbody id="accessTableBody">
+              <tr><td colspan="4" class="empty-card">Загрузка...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="padding:10px 14px;font-size:11px;color:var(--text3);line-height:1.5">
+          <b style="color:var(--text2)">user</b> — только генерация (без админки) ·
+          <b style="color:#a78bfa">viewer</b> — просмотр всей аналитики ·
+          <b style="color:var(--yellow)">admin</b> — полный доступ
         </div>
       </div>
 
@@ -1146,6 +1175,11 @@ async function initAuth() {
   });
 }
 
+const ADMIN_ROLES = ['admin', 'viewer'];
+const FULL_ADMIN_ROLES = ['admin'];
+const isAdmin = () => FULL_ADMIN_ROLES.includes(currentProfile?.role);
+const canViewAdmin = () => ADMIN_ROLES.includes(currentProfile?.role);
+
 async function applySession(session) {
   currentUser  = session.user;
   currentToken = session.access_token;
@@ -1154,12 +1188,20 @@ async function applySession(session) {
   currentProfile = prof;
   const name = prof?.name || currentUser.email.split('@')[0];
   const role = prof?.role || 'user';
+  const roleLabel = role === 'admin' ? '👑 Админ' : role === 'viewer' ? '👁 Наблюдатель' : '👤 Пользователь';
   document.getElementById('userAvatar').textContent = name.charAt(0).toUpperCase();
   document.getElementById('userName').textContent   = name;
-  document.getElementById('userRole').textContent   = role === 'admin' ? '👑 Админ' : '👤 Пользователь';
-  document.getElementById('adminTabBtn').style.display = role === 'admin' ? '' : 'none';
+  document.getElementById('userRole').textContent   = roleLabel;
+  document.getElementById('adminTabBtn').style.display = canViewAdmin() ? '' : 'none';
   document.getElementById('loginOverlay').style.display = 'none';
-  if (role === 'admin' && typeof initAdminDashboard === 'function') initAdminDashboard();
+  // Скрываем админ-only элементы для viewer
+  const editBtn = document.getElementById('editPricesBtn');
+  if (editBtn) editBtn.style.display = isAdmin() ? '' : 'none';
+  const manageBtn = document.getElementById('manageAccessBtn');
+  if (manageBtn) manageBtn.style.display = isAdmin() ? '' : 'none';
+  const accessCard = document.getElementById('accessControlCard');
+  if (accessCard) accessCard.style.display = isAdmin() ? '' : 'none';
+  if (canViewAdmin() && typeof initAdminDashboard === 'function') initAdminDashboard();
 }
 
 async function doLogin() {
@@ -1315,7 +1357,7 @@ const CAT_COLORS = {
 function switchTab(tab) {
   // Гард доступа к админке
   if (tab === 'admin') {
-    if (!currentProfile || currentProfile.role !== 'admin') {
+    if (!canViewAdmin()) {
       showToast('Нет доступа к админ-панели', 'error');
       return;
     }
@@ -2160,7 +2202,7 @@ function initAdminDashboard() {
 }
 
 async function loadAdminData(forceSpinner) {
-  if (!currentProfile || currentProfile.role !== 'admin') return;
+  if (!canViewAdmin()) return;
   const refreshBtn = document.getElementById('adminRefreshBtn');
   if (refreshBtn && forceSpinner) refreshBtn.classList.add('spinning');
   try {
@@ -2232,6 +2274,82 @@ function renderAll() {
   renderActivityFeed();
   renderModelsTable();
   renderEfficiencyTable();
+  if (isAdmin()) renderAccessControl();
+}
+
+// ─── Управление доступом (только для admin) ───────────────
+let _accessProfiles = null;
+
+async function renderAccessControl(forceReload) {
+  if (!isAdmin()) return;
+  const tbody = document.getElementById('accessTableBody');
+  if (!tbody) return;
+  if (forceReload || !_accessProfiles) {
+    tbody.innerHTML = '<tr><td colspan="4" class="empty-card">Загрузка...</td></tr>';
+    const { data, error } = await _supabase
+      .from('profiles')
+      .select('id,name,email,role')
+      .order('name', { ascending: true });
+    if (error) {
+      tbody.innerHTML = `<tr><td colspan="4" class="empty-card" style="color:var(--red)">Ошибка: ${_esc(error.message)}</td></tr>`;
+      return;
+    }
+    _accessProfiles = data || [];
+  }
+  const q = (document.getElementById('accessSearchInput')?.value || '').trim().toLowerCase();
+  const rows = _accessProfiles.filter(p => {
+    if (!q) return true;
+    return (p.name||'').toLowerCase().includes(q) || (p.email||'').toLowerCase().includes(q);
+  });
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="4" class="empty-card">Ничего не найдено</td></tr>';
+    return;
+  }
+  const me = currentUser?.id;
+  tbody.innerHTML = rows.map(p => {
+    const role = p.role || 'user';
+    const roleColor = role === 'admin' ? 'var(--yellow)' : role === 'viewer' ? '#a78bfa' : 'var(--text3)';
+    const roleLabel = role === 'admin' ? '👑 admin' : role === 'viewer' ? '👁 viewer' : '👤 user';
+    const isMe = p.id === me;
+    const action = isMe
+      ? '<span style="font-size:11px;color:var(--text3)">— это вы —</span>'
+      : `<select onchange="setUserRole('${_esc(p.id)}', this.value, this)"
+           style="background:var(--dark2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--text);font-family:'Golos Text',sans-serif;cursor:pointer">
+           <option value="user"   ${role==='user'?'selected':''}>👤 user</option>
+           <option value="viewer" ${role==='viewer'?'selected':''}>👁 viewer</option>
+           <option value="admin"  ${role==='admin'?'selected':''}>👑 admin</option>
+         </select>`;
+    return `<tr>
+      <td><div class="eff-name">${_esc(p.name || '—')}</div></td>
+      <td style="font-size:11px;color:var(--text2);font-family:monospace">${_esc(p.email || '')}</td>
+      <td style="color:${roleColor};font-weight:600">${roleLabel}</td>
+      <td style="text-align:right">${action}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function setUserRole(userId, newRole, selectEl) {
+  if (!isAdmin()) { showToast('Нет прав', 'error'); return; }
+  if (userId === currentUser?.id) {
+    showToast('Нельзя менять собственную роль', 'error');
+    if (selectEl) renderAccessControl(true);
+    return;
+  }
+  if (!['user','viewer','admin'].includes(newRole)) return;
+  const prev = _accessProfiles?.find(p => p.id === userId)?.role;
+  if (selectEl) selectEl.disabled = true;
+  const { error } = await _supabase.from('profiles').update({ role: newRole }).eq('id', userId);
+  if (selectEl) selectEl.disabled = false;
+  if (error) {
+    showToast('Ошибка: ' + error.message, 'error');
+    return;
+  }
+  if (_accessProfiles) {
+    const p = _accessProfiles.find(x => x.id === userId);
+    if (p) p.role = newRole;
+  }
+  showToast(`✅ Роль обновлена: ${prev || '?'} → ${newRole}`, 'success');
+  renderAccessControl();
 }
 
 function destroyCharts() {
