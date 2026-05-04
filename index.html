@@ -2288,13 +2288,18 @@ async function renderAccessControl(forceReload) {
     tbody.innerHTML = '<tr><td colspan="4" class="empty-card">Загрузка...</td></tr>';
     const { data, error } = await _supabase
       .from('profiles')
-      .select('id,name,email,role')
+      .select('id,name,role')
       .order('name', { ascending: true });
     if (error) {
       tbody.innerHTML = `<tr><td colspan="4" class="empty-card" style="color:var(--red)">Ошибка: ${_esc(error.message)}</td></tr>`;
       return;
     }
-    _accessProfiles = data || [];
+    // Подтягиваем email из generations (в profiles email-а нет — он в auth.users)
+    const emailByUser = {};
+    for (const r of (_adminData || [])) {
+      if (r.user_id && r.user_email && !emailByUser[r.user_id]) emailByUser[r.user_id] = r.user_email;
+    }
+    _accessProfiles = (data || []).map(p => ({ ...p, email: emailByUser[p.id] || '' }));
   }
   const q = (document.getElementById('accessSearchInput')?.value || '').trim().toLowerCase();
   const rows = _accessProfiles.filter(p => {
