@@ -1234,6 +1234,7 @@ function showLoginScreen() {
 async function logGeneration(mode, data, category, productName) {
   if (!currentUser) return;
   const cost = data.cost || {};
+  const tok  = data.tokens || {};
   try {
     await fetch(`${SB_URL}/rest/v1/generations`, {
       method: 'POST',
@@ -1248,7 +1249,15 @@ async function logGeneration(mode, data, category, productName) {
         product_name: productName || data.product_desc || '',
         category:     category || '',
         cost_usd:   cost.total_usd   || 0,
-        cost_tenge: cost.total_tenge || 0
+        cost_tenge: cost.total_tenge || 0,
+        // ─── Точный учёт по токенам (v44+) ───
+        gemini_input_tokens:    tok.gemini_input    || 0,
+        gemini_output_tokens:   tok.gemini_output   || 0,
+        gemini_thinking_tokens: tok.gemini_thinking || 0,
+        haiku_input_tokens:     tok.haiku_input     || 0,
+        haiku_output_tokens:    tok.haiku_output    || 0,
+        cost_breakdown:         cost.breakdown      || null,
+        duration_ms:            data.duration_ms    || null
       })
     });
   } catch(e) { console.warn('logGeneration failed:', e); }
@@ -2707,14 +2716,26 @@ async function renderModelsTable() {
     return;
   }
 
-  // Счётчики по фактически использованной модели
-  const usage = {};          // model_slug -> { calls, cost_tenge }
+  // Счётчики по фактически использованной модели + сумма токенов и фактической стоимости
+  const usage = {};
   let totalCostTg = 0;
   for (const r of rows) {
     const m = r.model_used || '—';
-    if (!usage[m]) usage[m] = { calls: 0, cost_tenge: 0 };
+    if (!usage[m]) usage[m] = {
+      calls: 0, cost_tenge: 0, cost_usd: 0,
+      tok_in: 0, tok_out: 0, tok_think: 0,
+      calls_with_tokens: 0
+    };
     usage[m].calls++;
     usage[m].cost_tenge += r.cost_tenge || 0;
+    usage[m].cost_usd   += Number(r.cost_usd) || 0;
+    const tIn = r.gemini_input_tokens || 0;
+    const tOut = r.gemini_output_tokens || 0;
+    const tTh = r.gemini_thinking_tokens || 0;
+    usage[m].tok_in    += tIn;
+    usage[m].tok_out   += tOut;
+    usage[m].tok_think += tTh;
+    if (tIn + tOut + tTh > 0) usage[m].calls_with_tokens++;
     totalCostTg += r.cost_tenge || 0;
   }
 
@@ -2726,12 +2747,35 @@ async function renderModelsTable() {
   const all = prices.concat(extra);
 
   tbody.innerHTML = all.map(p => {
-    const u = usage[p.model_slug] || { calls: 0, cost_tenge: 0 };
+    const u = usage[p.model_slug] || { calls: 0, cost_tenge: 0, cost_usd: 0, tok_in: 0, tok_out: 0, tok_think: 0, calls_with_tokens: 0 };
     const pct = totalCostTg ? (u.cost_tenge / totalCostTg * 100) : 0;
-    const priceTg = p.cost_usd != null ? Math.round(p.cost_usd * 500) : null;
-    const priceCell = p.cost_usd != null
-      ? `$${Number(p.cost_usd).toFixed(4)} <span style="color:var(--text3);font-size:10px">(~${priceTg} тг)</span>`
+
+    // Реальная средняя $/вызов по фактическим логам (если есть)
+    const avgUsdActual = u.calls > 0 ? (u.cost_usd / u.calls) : null;
+    const avgTokensIn  = u.calls_with_tokens > 0 ? Math.round(u.tok_in / u.calls_with_tokens) : 0;
+    const avgTokensOut = u.calls_with_tokens > 0 ? Math.round(u.tok_out / u.calls_with_tokens) : 0;
+    const avgTokensTh  = u.calls_with_tokens > 0 ? Math.round(u.tok_think / u.calls_with_tokens) : 0;
+
+    // Левая ячейка — нормативная цена (fallback) + per-token расценки
+    const fixedTg = p.cost_usd != null ? Math.round(p.cost_usd * 500) : null;
+    const fixedLine = p.cost_usd != null
+      ? `<div style="font-size:11px;color:var(--text3)">fallback: $${Number(p.cost_usd).toFixed(4)} <span style="opacity:0.7">(~${fixedTg} тг)</span></div>`
+      : '';
+    const inM  = Number(p.input_price_per_m_usd)    || 0;
+    const outM = Number(p.output_price_per_m_usd)   || 0;
+    const thM  = Number(p.thinking_price_per_m_usd) || 0;
+    const ratesLine = (inM || outM || thM)
+      ? `<div style="font-size:10px;color:var(--text3);font-family:monospace">in $${inM.toFixed(2)}/M · out $${outM.toFixed(2)}/M${thM?` · think $${thM.toFixed(2)}/M`:''}</div>`
+      : '';
+    // Фактическая средняя $/вызов
+    const actualLine = avgUsdActual != null && u.calls > 0
+      ? `<div style="color:var(--green);font-weight:700">$${avgUsdActual.toFixed(4)} <span style="font-size:10px;font-weight:500;opacity:0.75">факт/ген (~${Math.round(avgUsdActual*500)} тг)</span></div>`
       : '<span style="color:var(--text3)">—</span>';
+    const tokTitle = u.calls_with_tokens > 0
+      ? `Средне на вызов: in=${avgTokensIn}, out=${avgTokensOut}${avgTokensTh?', think='+avgTokensTh:''} токенов (по ${u.calls_with_tokens} вызовам с usageMetadata)`
+      : '';
+    const priceCell = `<div title="${tokTitle}" style="white-space:nowrap;line-height:1.4">${actualLine}${ratesLine}${fixedLine}</div>`;
+
     let status;
     if (p.is_active === false) status = '<span style="color:var(--text3);font-size:11px">⛔ Отключена</span>';
     else if (p.is_active === null) status = '<span style="color:var(--yellow);font-size:11px">⚠ Вне справочника</span>';
@@ -2746,7 +2790,7 @@ async function renderModelsTable() {
       <td><div class="eff-name">${_esc(p.display_name || p.model_slug)}</div><div style="font-size:10px;color:var(--text3);font-family:monospace">${_esc(p.model_slug)}</div></td>
       <td>${modeLabel}</td>
       <td>${status}</td>
-      <td class="eff-num" style="white-space:nowrap">${priceCell}</td>
+      <td class="eff-num">${priceCell}</td>
       <td class="eff-num">${u.calls}</td>
       <td class="eff-num" style="color:var(--yellow)">${fmtTg(u.cost_tenge)}</td>
       <td class="eff-num" style="color:${pct >= 50 ? 'var(--red)' : pct >= 20 ? 'var(--yellow)' : 'var(--text2)'}">${pct.toFixed(1)}%</td>
@@ -2776,11 +2820,11 @@ async function openModelPricesEditor() {
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
         <div>
-          <label style="font-size:11px;color:var(--text2);font-weight:600;display:block;margin-bottom:4px">Цена за вызов ($)</label>
+          <label style="font-size:11px;color:var(--text2);font-weight:600;display:block;margin-bottom:4px">Fallback цена за вызов ($)</label>
           <input type="number" step="0.0001" min="0" value="${p.cost_usd}" data-field="cost_usd"
             style="width:100%;background:var(--dark2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;color:var(--text);font-family:'Golos Text',sans-serif"
             oninput="_mpOnPriceChange(this)">
-          <div style="font-size:10px;color:var(--text3);margin-top:3px" class="mp-price-tg">~${Math.round(p.cost_usd*500)} тг</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:3px" class="mp-price-tg">~${Math.round(p.cost_usd*500)} тг · если usageMetadata пуст</div>
         </div>
         <div>
           <label style="font-size:11px;color:var(--text2);font-weight:600;display:block;margin-bottom:4px">Режим</label>
@@ -2790,6 +2834,28 @@ async function openModelPricesEditor() {
             <option value="pro"  ${p.quality_for==='pro' ?'selected':''}>✨ Pro</option>
           </select>
         </div>
+      </div>
+
+      <div style="background:var(--dark2);border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:8px">
+        <div style="font-size:11px;color:var(--text2);font-weight:600;margin-bottom:8px">⚙ Per-token расценки ($ за 1 млн токенов) — точный учёт</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+          <div>
+            <label style="font-size:10px;color:var(--text3);display:block;margin-bottom:3px">Input $/M</label>
+            <input type="number" step="0.01" min="0" value="${Number(p.input_price_per_m_usd||0)}" data-field="input_price_per_m_usd"
+              style="width:100%;background:var(--dark3);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px;color:var(--text);font-family:monospace">
+          </div>
+          <div>
+            <label style="font-size:10px;color:var(--text3);display:block;margin-bottom:3px">Output $/M</label>
+            <input type="number" step="0.01" min="0" value="${Number(p.output_price_per_m_usd||0)}" data-field="output_price_per_m_usd"
+              style="width:100%;background:var(--dark3);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px;color:var(--text);font-family:monospace">
+          </div>
+          <div>
+            <label style="font-size:10px;color:var(--text3);display:block;margin-bottom:3px">Thinking $/M</label>
+            <input type="number" step="0.01" min="0" value="${Number(p.thinking_price_per_m_usd||0)}" data-field="thinking_price_per_m_usd"
+              style="width:100%;background:var(--dark3);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px;color:var(--text);font-family:monospace">
+          </div>
+        </div>
+        <div style="font-size:10px;color:var(--text3);margin-top:6px">Цена считается как (input×in + output×out + thinking×think) / 1 000 000. Thinking — только для Gemini 3 Pro.</div>
       </div>
 
       <div style="display:flex;gap:16px;margin-bottom:8px">
@@ -2835,7 +2901,10 @@ async function saveModelPrices() {
       c.querySelectorAll('[data-field]').forEach(el => {
         const f = el.dataset.field;
         if (el.type === 'checkbox')    patch[f] = el.checked;
-        else if (f === 'cost_usd')     patch[f] = parseFloat(el.value) || 0;
+        else if (f === 'cost_usd' ||
+                 f === 'input_price_per_m_usd' ||
+                 f === 'output_price_per_m_usd' ||
+                 f === 'thinking_price_per_m_usd') patch[f] = parseFloat(el.value) || 0;
         else if (f === 'quality_for')  patch[f] = el.value || null;
         else                           patch[f] = el.value;
       });
