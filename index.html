@@ -514,6 +514,10 @@
         <div id="userRole" style="font-size:10px;color:var(--text3)">загрузка...</div>
       </div>
     </div>
+    <button onclick="refreshProfile()" title="Обновить права (если админ только что выдал доступ)"
+      style="background:transparent;border:1px solid var(--border);color:var(--text3);padding:5px 9px;border-radius:7px;font-size:13px;cursor:pointer;font-family:'Golos Text',sans-serif;transition:all 0.2s"
+      onmouseover="this.style.borderColor='var(--green)';this.style.color='var(--green)'"
+      onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">🔄</button>
     <button onclick="doLogout()"
       style="background:transparent;border:1px solid var(--border);color:var(--text3);padding:5px 12px;border-radius:7px;font-size:12px;cursor:pointer;font-family:'Golos Text',sans-serif;transition:all 0.2s"
       onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'"
@@ -1310,8 +1314,18 @@ async function applySession(session) {
   currentUser  = session.user;
   currentToken = session.access_token;
   // Load profile
-  const { data: prof } = await _supabase.from('profiles').select('*').eq('id', currentUser.id).single();
+  const { data: prof, error: profErr } = await _supabase.from('profiles').select('*').eq('id', currentUser.id).single();
+  if (profErr) console.warn('[profile load]', profErr);
+  console.log('[profile loaded]', prof);
   currentProfile = prof;
+  applyProfileUI();
+  if (canViewAdmin() && typeof initAdminDashboard === 'function') initAdminDashboard();
+}
+
+// Применить UI на основе currentProfile (вызывается из applySession и refreshProfile)
+function applyProfileUI() {
+  const prof = currentProfile;
+  if (!prof || !currentUser) return;
   const name = prof?.name || currentUser.email.split('@')[0];
   const role = prof?.role || 'user';
   const roleLabel = role === 'admin' ? '👑 Админ' : role === 'viewer' ? '👁 Наблюдатель' : '👤 Пользователь';
@@ -1330,8 +1344,29 @@ async function applySession(session) {
   if (manageBtn) manageBtn.style.display = isAdmin() ? '' : 'none';
   const accessCard = document.getElementById('accessControlCard');
   if (accessCard) accessCard.style.display = isAdmin() ? '' : 'none';
-  if (canViewAdmin() && typeof initAdminDashboard === 'function') initAdminDashboard();
 }
+
+// Перезагрузить профиль из БД (после изменений админом — например выдачи can_use_banner)
+async function refreshProfile() {
+  if (!currentUser) return;
+  const { data: prof, error } = await _supabase.from('profiles').select('*').eq('id', currentUser.id).single();
+  if (error) { console.warn('[refreshProfile]', error); return; }
+  const before = currentProfile;
+  currentProfile = prof;
+  applyProfileUI();
+  // Уведомление если что-то изменилось
+  if (before && (before.role !== prof.role || before.can_use_banner !== prof.can_use_banner)) {
+    if (typeof showToast === 'function') showToast('🔄 Профиль обновлён', 'success');
+  }
+}
+
+// Авто-refresh профиля когда юзер возвращается на вкладку (подхват свежих прав)
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && currentUser) refreshProfile();
+});
+window.addEventListener('focus', () => {
+  if (currentUser) refreshProfile();
+});
 
 async function doLogin() {
   const email    = document.getElementById('loginEmail').value.trim();
