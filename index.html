@@ -889,12 +889,26 @@
   .sf-variant-logo { position:absolute; bottom:6px; right:6px; width:28px; height:28px; border-radius:50%; border:2px solid #fff; background:rgba(255,255,255,0.95) center/cover no-repeat; display:flex; align-items:center; justify-content:center; font-size:10px; color:#888; box-shadow:0 1px 4px rgba(0,0,0,0.3); }
   .sf-variant-logo.square { border-radius:6px; }
   .sf-variant-logo img { width:100%; height:100%; border-radius:inherit; object-fit:contain; }
-  .sf-variant-meta { display:flex; align-items:center; justify-content:space-between; padding:6px 10px; font-size:11px; color:var(--text2); }
-  .sf-variant-actions { display:flex; gap:4px; }
-  .sf-variant-actions button { background:transparent; border:none; color:var(--text2); cursor:pointer; padding:2px 4px; font-size:12px; }
-  .sf-variant-actions button:hover { color:var(--green); }
+  .sf-variant-meta { display:flex; align-items:center; justify-content:space-between; padding:7px 10px; font-size:11px; color:var(--text2); }
+  .sf-variant-meta .num { font-weight:700; color:var(--text); }
+  .sf-variant-meta .selected { color:var(--green); font-weight:600; }
   .sf-variant-error { padding:14px 8px; text-align:center; color:var(--red); font-size:11px; }
   .sf-variant-pending { padding:14px 8px; display:flex; align-items:center; justify-content:center; color:var(--text3); font-size:11px; gap:6px; }
+
+  /* Actions panel — under the mockup, shows buttons for the SELECTED variant */
+  .sf-actions { margin-top:14px; background:var(--dark2); border:1px solid var(--border); border-radius:14px; padding:14px; }
+  .sf-actions-title { font-size:11px; font-weight:600; color:var(--text3); text-transform:uppercase; letter-spacing:1px; margin-bottom:10px; }
+  .sf-action-row { display:flex; align-items:center; gap:10px; padding:10px 0; border-top:1px solid var(--border); }
+  .sf-action-row:first-of-type { border-top:none; padding-top:0; }
+  .sf-action-icon { width:36px; height:36px; border-radius:10px; background:var(--dark3); display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+  .sf-action-label { flex:1; font-size:13px; color:var(--text); font-family:'Golos Text',sans-serif; }
+  .sf-action-label small { display:block; font-size:10px; color:var(--text3); margin-top:2px; }
+  .sf-action-btn { padding:8px 12px; background:var(--dark3); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:12px; font-weight:600; cursor:pointer; font-family:'Golos Text',sans-serif; display:flex; align-items:center; gap:5px; transition:all .12s; }
+  .sf-action-btn:hover:not(:disabled) { border-color:var(--green); color:var(--green); }
+  .sf-action-btn.primary { background:var(--green); color:#fff; border-color:var(--green); }
+  .sf-action-btn.primary:hover:not(:disabled) { background:#009960; color:#fff; }
+  .sf-action-btn:disabled { opacity:0.4; cursor:not-allowed; }
+  .sf-action-buttons { display:flex; gap:6px; }
 </style>
 <div class="tab-panel" id="tab-banner">
   <div class="sf-wrap">
@@ -1002,12 +1016,33 @@
           </div>
         </div>
 
+        <!-- Actions panel for selected variant -->
+        <div class="sf-actions" id="sfActionsWrap" style="display:none">
+          <div class="sf-actions-title">Действия с вариантом <span id="sfActionsIdx" style="color:var(--green);font-weight:700">#1</span></div>
+          <div class="sf-action-row">
+            <div class="sf-action-icon">🎨</div>
+            <div class="sf-action-label">Баннер 16:9 <small id="sfBannerStatus">—</small></div>
+            <div class="sf-action-buttons">
+              <button class="sf-action-btn primary" id="sfBtnDlBanner" onclick="_downloadOne(activeVariantIdx,'banner')" disabled>⬇️ Скачать</button>
+              <button class="sf-action-btn" id="sfBtnRetryBanner" onclick="_retryBanner(activeVariantIdx)" disabled title="Перегенерировать баннер">↻</button>
+            </div>
+          </div>
+          <div class="sf-action-row">
+            <div class="sf-action-icon">●</div>
+            <div class="sf-action-label">Логотип 1:1 <small id="sfLogoStatus">—</small></div>
+            <div class="sf-action-buttons">
+              <button class="sf-action-btn primary" id="sfBtnDlLogo" onclick="_downloadOne(activeVariantIdx,'logo')" disabled>⬇️ Скачать</button>
+              <button class="sf-action-btn" id="sfBtnRetryLogo" onclick="_retryLogo(activeVariantIdx)" disabled title="Перегенерировать логотип">↻</button>
+            </div>
+          </div>
+        </div>
+
         <!-- Variants picker -->
         <div class="sf-variants" id="sfVariantsWrap" style="display:none">
           <div class="sf-variants-head">
             <div class="sf-variants-title">Варианты <span id="sfVariantsCount" style="color:var(--text);font-weight:700">—</span></div>
             <button id="bannerZipBtn" onclick="downloadAllStorefronts()"
-              style="display:none;padding:6px 12px;background:transparent;border:1px solid var(--green);border-radius:8px;color:var(--green);font-size:12px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif">⬇️ ZIP</button>
+              style="display:none;padding:6px 12px;background:transparent;border:1px solid var(--green);border-radius:8px;color:var(--green);font-size:12px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif">⬇️ Все в ZIP</button>
           </div>
           <div id="bannerGrid" class="sf-variants-grid"></div>
         </div>
@@ -4323,12 +4358,11 @@ function _renderStorefrontGrid() {
     const isActive = slot.idx === activeVariantIdx;
     const shape    = (document.querySelector('input[name="logoShape"]:checked')?.value) || 'circle';
 
-    // banner thumb
-    let bannerHtml = '';
+    let thumbHtml = '';
     if (slot.banner_status === 'pending') {
-      bannerHtml = `<div class="sf-variant-pending"><div class="spinner" style="width:18px;height:18px;border-width:2px"></div> баннер…</div>`;
+      thumbHtml = `<div class="sf-variant-pending"><div class="spinner" style="width:18px;height:18px;border-width:2px"></div> генерируем…</div>`;
     } else if (slot.banner_status === 'error') {
-      bannerHtml = `<div class="sf-variant-error">⚠ ${_esc((slot.banner_error || 'Ошибка').slice(0, 60))}</div>`;
+      thumbHtml = `<div class="sf-variant-error">⚠ ${_esc((slot.banner_error || 'Ошибка').slice(0, 60))}</div>`;
     } else {
       const logoOverlay = (slot.logo_status === 'done' && slot.logo_b64)
         ? `<div class="sf-variant-logo${shape === 'rounded_square' ? ' square' : ''}"><img src="data:${slot.logo_mime};base64,${slot.logo_b64}"></div>`
@@ -4337,26 +4371,43 @@ function _renderStorefrontGrid() {
             : (slot.logo_status === 'error'
                 ? `<div class="sf-variant-logo${shape === 'rounded_square' ? ' square' : ''}" style="color:#e74c3c">⚠</div>`
                 : ''));
-      bannerHtml = `<img src="data:${slot.banner_mime};base64,${slot.banner_b64}" alt="">${logoOverlay}`;
+      thumbHtml = `<img src="data:${slot.banner_mime};base64,${slot.banner_b64}" alt="">${logoOverlay}`;
     }
 
-    const canRetryBanner = slot.banner_status !== 'pending';
-    const canRetryLogo   = slot.banner_status === 'done' && slot.logo_status !== 'pending';
-    const canDownload    = slot.banner_status === 'done';
-
-    return `<div class="sf-variant${isActive ? ' active' : ''}" onclick="_setActiveVariant(${slot.idx})">
-      <div class="sf-variant-thumb">${bannerHtml}</div>
+    return `<div class="sf-variant${isActive ? ' active' : ''}" onclick="_setActiveVariant(${slot.idx})" title="Кликни чтобы выбрать вариант">
+      <div class="sf-variant-thumb">${thumbHtml}</div>
       <div class="sf-variant-meta">
-        <span>#${slot.idx + 1}</span>
-        <div class="sf-variant-actions" onclick="event.stopPropagation()">
-          ${canDownload ? `<button onclick="_downloadOne(${slot.idx},'banner')" title="Скачать баннер">⬇️🎨</button>` : ''}
-          ${slot.logo_status === 'done' ? `<button onclick="_downloadOne(${slot.idx},'logo')" title="Скачать логотип">⬇️●</button>` : ''}
-          ${canRetryBanner ? `<button onclick="_retryBanner(${slot.idx})" title="Перегенерировать баннер">↻🎨</button>` : ''}
-          ${canRetryLogo   ? `<button onclick="_retryLogo(${slot.idx})"   title="Перегенерировать логотип">↻●</button>` : ''}
-        </div>
+        <span class="num">#${slot.idx + 1}</span>
+        <span class="${isActive ? 'selected' : ''}">${isActive ? '● выбран' : 'выбрать'}</span>
       </div>
     </div>`;
   }).join('');
+
+  _updateActionsPanel();
+}
+
+function _updateActionsPanel() {
+  const wrap = document.getElementById('sfActionsWrap');
+  if (!wrap) return;
+  const slot = bannerResults[activeVariantIdx];
+  if (!slot) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  document.getElementById('sfActionsIdx').textContent = `#${slot.idx + 1}`;
+
+  const statusText = (s, err) => {
+    if (s === 'done')    return 'готово';
+    if (s === 'pending') return 'генерируется…';
+    if (s === 'error')   return `ошибка: ${(err || '').slice(0, 60)}`;
+    return '—';
+  };
+
+  document.getElementById('sfBannerStatus').textContent = statusText(slot.banner_status, slot.banner_error);
+  document.getElementById('sfLogoStatus').textContent   = statusText(slot.logo_status,   slot.logo_error);
+
+  document.getElementById('sfBtnDlBanner').disabled    = slot.banner_status !== 'done';
+  document.getElementById('sfBtnDlLogo').disabled      = slot.logo_status !== 'done';
+  document.getElementById('sfBtnRetryBanner').disabled = slot.banner_status === 'pending';
+  document.getElementById('sfBtnRetryLogo').disabled   = slot.banner_status !== 'done' || slot.logo_status === 'pending';
 }
 
 function _downloadOne(i, kind) {
