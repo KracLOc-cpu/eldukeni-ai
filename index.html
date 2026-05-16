@@ -482,6 +482,7 @@
     <button class="tab-btn" id="bannerTabBtn" onclick="switchTab('banner')" style="display:none">🎨 Оформление</button>
     <button class="tab-btn" onclick="switchTab('search')">🔍 Поиск фото</button>
     <button class="tab-btn" id="adminTabBtn" onclick="switchTab('admin')" style="display:none;background:linear-gradient(135deg,#8B5CF6,#6D28D9);color:#fff;border-color:transparent">👑 Админ</button>
+    <button class="tab-btn" onclick="switchTab('sellers')">🏪 Из БД</button>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:1px">Размер карточки:</div>
@@ -1465,6 +1466,33 @@
   </div>
 </div>
 
+<!-- ═══ ИЗ БД ПРОДАВЦОВ (Apps Script) ═══ -->
+<div class="tab-panel" id="tab-sellers">
+  <div style="max-width:1100px;margin:0 auto;padding:24px">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;flex-wrap:wrap">
+      <div style="font-family:'Unbounded',sans-serif;font-size:18px;font-weight:700">🏪 Из БД продавцов</div>
+      <input id="sellersApiInput" type="text" placeholder="URL Apps Script Web App (https://script.google.com/macros/s/.../exec)"
+        style="flex:1;min-width:240px;background:var(--dark2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--text);font-family:'Golos Text',sans-serif;outline:none">
+      <button onclick="sellersSaveApi()" style="background:var(--green);color:#fff;border:none;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif">Сохранить</button>
+      <button onclick="sellersLoadList()" style="background:var(--dark3);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:10px;font-size:13px;cursor:pointer;font-family:'Golos Text',sans-serif">↻</button>
+    </div>
+    <div id="sellersFilterRow" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+      <select id="sellersFilterStatus" onchange="sellersLoadList()" style="background:var(--dark2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--text);font-family:'Golos Text',sans-serif">
+        <option value="new">Новые</option>
+        <option value="">Все</option>
+        <option value="generated">Карточки готовы</option>
+        <option value="archived">Архив</option>
+      </select>
+    </div>
+    <div id="sellersList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">
+      <div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--text3)">
+        <div style="font-size:42px;margin-bottom:10px">🏪</div>
+        <div style="font-size:14px;color:var(--text2)">Укажите URL Apps Script Web App и нажмите ↻</div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 const SB_URL = 'https://plgoehremyeeueweoxrt.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsZ29laHJlbXllZXVld2VveHJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNDQyNDcsImV4cCI6MjA4ODgyMDI0N30.yeMPdZyQBLnYZa6crKQ5tVSMHrYN7uvhITx5nXnrndI';
@@ -1739,7 +1767,7 @@ function switchTab(tab) {
   }
   document.querySelectorAll('.tab-btn').forEach((b,i) => {
     b.classList.toggle('active',
-      (i===0&&tab==='card')||(i===1&&tab==='batch')||(i===2&&tab==='twoviews')||(i===3&&tab==='banner')||(i===4&&tab==='search')||(i===5&&tab==='admin'));
+      (i===0&&tab==='card')||(i===1&&tab==='batch')||(i===2&&tab==='twoviews')||(i===3&&tab==='banner')||(i===4&&tab==='search')||(i===5&&tab==='admin')||(i===6&&tab==='sellers'));
     if (i===1) {
       b.style.background = tab==='batch' ? 'linear-gradient(135deg,#00C27C,#009960)' : '';
       b.style.color = tab==='batch' ? '#fff' : '';
@@ -1751,13 +1779,15 @@ function switchTab(tab) {
       b.style.borderColor = 'transparent';
     }
   });
-  ['card','batch','twoviews','banner','search','admin'].forEach(t => {
+  ['card','batch','twoviews','banner','search','admin','sellers'].forEach(t => {
     const el = document.getElementById(`tab-${t}`);
     if (el) el.classList.toggle('active', tab===t);
   });
 
   // Lifecycle для не-admin вкладок
   if (_adminRefreshTimer) { clearInterval(_adminRefreshTimer); _adminRefreshTimer = null; }
+
+  if (tab === 'sellers' && typeof sellersLoadList === 'function') sellersLoadList();
 }
 
 // Вызывается после успешного ввода PIN
@@ -3897,6 +3927,11 @@ async function startBatchProcessing() {
   if (doneCount > 0) {
     showToast(`Готово! ${doneCount} товаров · ${doneCount * 4} карточек${errCount ? ` · ошибок: ${errCount}` : ''}`, 'success');
   }
+
+  // Если работали в контексте продавца (Из БД) — отправить готовые карточки в Apps Script
+  if (typeof currentMarketSellerId !== 'undefined' && currentMarketSellerId && doneCount > 0 && typeof sellersSaveCards === 'function') {
+    sellersSaveCards();
+  }
 }
 
 function stopBatchProcessing() {
@@ -4790,6 +4825,150 @@ async function regenerateBatchItem(idx) {
   showToast('Товар добавлен в очередь на повторную генерацию', 'success');
   await startBatchProcessing();
 }
+
+// ═══ ИНТЕГРАЦИЯ С БД ПРОДАВЦОВ (Apps Script + Netlify) ═══
+const SELLERS_API_KEY = 'eldukeni_sellers_api_url';
+let currentMarketSellerId = null;
+
+function sellersGetApi() { return localStorage.getItem(SELLERS_API_KEY) || ''; }
+function sellersSaveApi() {
+  const v = document.getElementById('sellersApiInput').value.trim();
+  if (!v) { showToast('Введите URL', 'error'); return; }
+  localStorage.setItem(SELLERS_API_KEY, v);
+  showToast('URL сохранён', 'success');
+  sellersLoadList();
+}
+
+async function sellersLoadList() {
+  const api = sellersGetApi();
+  const inp = document.getElementById('sellersApiInput');
+  if (inp) inp.value = api;
+  const list = document.getElementById('sellersList');
+  if (!list) return;
+  if (!api) {
+    list.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--text3)"><div style="font-size:42px;margin-bottom:10px">🏪</div><div style="font-size:14px;color:var(--text2)">Укажите URL Apps Script Web App и нажмите ↻</div></div>';
+    return;
+  }
+  list.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text2)">Загрузка…</div>';
+  try {
+    const status = document.getElementById('sellersFilterStatus').value;
+    const url = api + '?action=list' + (status ? '&status=' + encodeURIComponent(status) : '');
+    const res = await fetch(url);
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.error);
+    if (!json.items.length) {
+      list.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--text3)"><div style="font-size:42px;margin-bottom:10px">📭</div><div style="font-size:14px">Нет продавцов</div></div>';
+      return;
+    }
+    list.innerHTML = json.items.map(s => `
+      <div style="background:var(--dark2);border:1px solid var(--border);border-radius:12px;padding:14px;cursor:pointer;transition:border-color .15s"
+           onmouseover="this.style.borderColor='var(--green)'" onmouseout="this.style.borderColor='var(--border)'"
+           onclick="sellersPickAndLoad('${s.id}')">
+        <div style="font-weight:700;font-size:14px;margin-bottom:4px">${_sellersEsc(s.store_name || s.ip_name || '(без названия)')}</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:8px">${_sellersEsc(s.market)} · ${_sellersEsc(s.row_container)} · ${s.photos_count||0} фото</div>
+        <div style="font-size:11px;color:var(--text3)">собрал ${_sellersEsc(s.manager)} · ${s.created_at ? new Date(s.created_at).toLocaleDateString('ru-RU') : ''}</div>
+        <div style="margin-top:8px"><span style="font-size:10px;font-weight:700;text-transform:uppercase;padding:3px 8px;border-radius:20px;background:rgba(0,194,124,.15);color:var(--green)">${_sellersEsc(s.status||'new')}</span></div>
+      </div>`).join('');
+  } catch (e) {
+    list.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--red)">Ошибка: ' + e.message + '</div>';
+  }
+}
+
+function _sellersEsc(s) { return String(s==null?'':s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c]); }
+
+async function sellersPickAndLoad(id) {
+  const api = sellersGetApi();
+  if (!api) { showToast('Сначала укажите URL API', 'error'); return; }
+  showToast('Загружаю фото продавца…', 'success');
+  try {
+    const res = await fetch(api + '?action=get&id=' + encodeURIComponent(id));
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.error);
+    const seller = json.item;
+    currentMarketSellerId = id;
+
+    const files = [];
+    for (const p of (seller.photos || [])) {
+      try {
+        let blob;
+        try {
+          const r = await fetch(p.download, { mode: 'cors' });
+          if (!r.ok) throw new Error('http ' + r.status);
+          blob = await r.blob();
+        } catch (_) {
+          const r2 = await fetch(p.thumb.replace('=w800','=w2000'));
+          blob = await r2.blob();
+        }
+        files.push(new File([blob], p.name || 'photo.jpg', { type: blob.type || 'image/jpeg' }));
+      } catch (e) { console.warn('photo fail', p.name, e); }
+    }
+    if (!files.length) { showToast('Фото не загрузились', 'error'); return; }
+
+    if (typeof batchQueue !== 'undefined') {
+      batchQueue.length = 0;
+      const q = document.getElementById('batchQueue');
+      if (q) q.innerHTML = '';
+    }
+    if (typeof handleBatchFiles === 'function') handleBatchFiles(files);
+    switchTab('batch');
+
+    let banner = document.getElementById('sellerBatchBanner');
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = 'sellerBatchBanner';
+      banner.style.cssText = 'background:rgba(0,194,124,.1);border:1px solid var(--green);padding:10px 14px;margin:0 16px 10px;border-radius:10px;font-size:12px;color:var(--text)';
+      const left = document.querySelector('.batch-left');
+      if (left) left.insertBefore(banner, left.firstChild);
+    }
+    banner.innerHTML = `🏪 <b>${_sellersEsc(seller.store_name || seller.ip_name)}</b> · ${_sellersEsc(seller.market)} · готовые карточки сохранятся в БД продавца`;
+  } catch (e) {
+    showToast('Ошибка: ' + e.message, 'error');
+  }
+}
+
+async function sellersSaveCards() {
+  if (!currentMarketSellerId) return;
+  const api = sellersGetApi();
+  if (!api) return;
+  const cards = [];
+  if (typeof batchQueue !== 'undefined') {
+    batchQueue.forEach((it, i) => {
+      if (it.status !== 'done') return;
+      (it.images || []).forEach((dataUrl, j) => {
+        const m = String(dataUrl).match(/^data:([^;]+);base64,(.+)$/);
+        if (!m) return;
+        cards.push({ name: (it.name || ('item_'+i)) + '_' + (j+1) + '.png', mime: m[1], base64: m[2] });
+      });
+    });
+  }
+  if (!cards.length) return;
+  try {
+    showToast('Сохраняю ' + cards.length + ' карточек в БД продавца…', 'success');
+    const res = await fetch(api + '?action=cards', {
+      method: 'POST',
+      body: JSON.stringify({ id: currentMarketSellerId, cards }),
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+    });
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.error);
+    showToast(`✓ ${json.saved} карточек сохранено в БД продавца`, 'success');
+    currentMarketSellerId = null;
+  } catch (e) {
+    showToast('Не удалось сохранить в БД: ' + e.message, 'error');
+  }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  const u = new URL(location.href);
+  const apiParam = u.searchParams.get('api');
+  if (apiParam) localStorage.setItem(SELLERS_API_KEY, apiParam);
+  const sellerParam = u.searchParams.get('seller_id');
+  if (sellerParam) {
+    setTimeout(() => { switchTab('sellers'); setTimeout(() => sellersPickAndLoad(sellerParam), 300); }, 500);
+  }
+  const inp = document.getElementById('sellersApiInput');
+  if (inp) inp.value = sellersGetApi();
+});
 </script>
 
 <!-- ═══ МОДАЛ: ДЕТАЛЬНЫЙ ПРОСМОТР КАРТОЧКИ ═══ -->
