@@ -4321,6 +4321,41 @@ function _cropToBannerRatio(b64, mime) {
   });
 }
 
+// Постобработка логотипа: маркетплейс рендерит аватарку магазина в круге,
+// поэтому контент должен помещаться во вписанную окружность. Масштабируем
+// исходный квадрат 1024×1024 до ~84% и кладём на прозрачный фон, после чего
+// применяем круговую альфа-маску — углы становятся прозрачными, файл остаётся
+// квадратным PNG для маркетплейса.
+function _padLogoToCircleSafeZone(b64, mime) {
+  const SIZE = 1024;
+  const SAFE = 0.88; // диаметр safe-zone относительно стороны
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = SIZE; c.height = SIZE;
+      const ctx = c.getContext('2d');
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      // 1) Уменьшенный логотип по центру на прозрачном фоне
+      const inner = Math.round(SIZE * SAFE);
+      const off = Math.round((SIZE - inner) / 2);
+      ctx.drawImage(img, 0, 0, img.width, img.height, off, off, inner, inner);
+      // 2) Круговая маска: всё, что вне круга радиуса SIZE/2, делаем прозрачным
+      ctx.globalCompositeOperation = 'destination-in';
+      ctx.beginPath();
+      ctx.arc(SIZE / 2, SIZE / 2, SIZE / 2, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalCompositeOperation = 'source-over';
+      const dataUrl = c.toDataURL('image/png');
+      resolve({ b64: dataUrl.split(',')[1] || '', mime: 'image/png' });
+    };
+    img.onerror = () => resolve(null);
+    img.src = `data:${mime};base64,${b64}`;
+  });
+}
+
 async function _postJSON(url, body) {
   const r = await fetch(url, {
     method:  'POST',
@@ -4361,9 +4396,12 @@ async function _generateLogoPart(slot, inputs) {
     banner_b64:  slot.banner_b64,
     banner_mime: slot.banner_mime,
   });
+  // Маркетплейс показывает аватарку магазина круглой — приводим лого в круглую
+  // safe-zone (контент 84% от стороны, углы прозрачные), чтобы ничего не резалось.
+  const padded = await _padLogoToCircleSafeZone(data.image_base64, data.mime || 'image/png');
   slot.logo_status = 'done';
-  slot.logo_b64    = data.image_base64;
-  slot.logo_mime   = data.mime || 'image/png';
+  slot.logo_b64    = padded ? padded.b64  : data.image_base64;
+  slot.logo_mime   = padded ? padded.mime : (data.mime || 'image/png');
   const productName = inputs.storeName || (inputs.description ? inputs.description.slice(0, 60) : `Логотип / ${inputs.category}`);
   try { logGeneration('logo', data, inputs.category, productName); } catch (e) { console.error('logGeneration logo failed', e); }
 }
