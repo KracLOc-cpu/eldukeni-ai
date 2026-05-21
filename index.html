@@ -4321,30 +4321,30 @@ function _cropToBannerRatio(b64, mime) {
   });
 }
 
-// Постобработка логотипа: маркетплейс рендерит аватарку магазина в круге.
-// Gemini часто возвращает квадрат 1024×1024 с большим белым/однотонным
-// полем вокруг самого логотипа — после круговой маски контент выглядит
-// «скукоженным» в центре. Поэтому сначала находим bbox реального контента
-// (отсекаем фон-кайму), заполняем им safe-zone (88% круга), и только затем
-// накладываем круговую альфа-маску. Финальный PNG — 1024×1024, прозрачные углы.
+// Постобработка логотипа: Gemini возвращает квадрат 1024×1024, но контент
+// обычно занимает только центр — вокруг широкая белая кайма. На маркетплейсе
+// аватарка показывается в квадратном блоке со скруглёнными углами, поэтому
+// прозрачная круговая маска не нужна (она бы открывала белый фон контейнера).
+// Просто отсекаем кайму по bbox и заполняем им квадрат 1024 целиком — логотип
+// перестаёт выглядеть «скукоженным» по центру. Маленький паддинг (2%) на случай,
+// если декоративные элементы Gemini заходят на самый край.
 function _padLogoToCircleSafeZone(b64, mime) {
   const SIZE = 1024;
-  const SAFE = 0.88;
+  const PAD  = 0.02;
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
-      // ─── 1) Загружаем оригинал на временный канвас, ищем bbox контента ───
+      // ─── 1) Сканируем оригинал, находим bbox реального контента ───
       const src = document.createElement('canvas');
       src.width = img.width; src.height = img.height;
       const sctx = src.getContext('2d');
       sctx.drawImage(img, 0, 0);
 
-      let bbox;
+      let bbox = null;
+      let bgColor = null;
       try {
         const data = sctx.getImageData(0, 0, src.width, src.height).data;
-        // Определяем «цвет фона» по углам и считаем bbox пикселей, отличных
-        // от него (и непрозрачных). Допуск — 18 на канал. Это работает и для
-        // белого фона, и для прозрачного, и для однотонного.
+        // Цвет фона — усреднение по 4 углам
         const corners = [
           [0, 0],
           [src.width - 1, 0],
@@ -4359,6 +4359,7 @@ function _padLogoToCircleSafeZone(b64, mime) {
         br = br >> 2; bg = bg >> 2; bb = bb >> 2; ba = ba >> 2;
         const TOL = 18;
         const bgTransparent = ba < 8;
+        bgColor = bgTransparent ? null : `rgb(${br},${bg},${bb})`;
 
         let minX = src.width, minY = src.height, maxX = -1, maxY = -1;
         for (let y = 0; y < src.height; y++) {
@@ -4384,34 +4385,41 @@ function _padLogoToCircleSafeZone(b64, mime) {
           bbox = { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
         }
       } catch (e) {
-        // canvas tainted или иная ошибка — fallback на весь кадр
         bbox = null;
       }
 
       if (!bbox) bbox = { x: 0, y: 0, w: img.width, h: img.height };
 
-      // ─── 2) Скейлим bbox так, чтобы он вписался в safe-zone (88% круга) ───
+      // Делаем bbox квадратным (по большей стороне) — чтобы контент не растягивался
+      const side = Math.max(bbox.w, bbox.h);
+      const cx   = bbox.x + bbox.w / 2;
+      const cy   = bbox.y + bbox.h / 2;
+      let sx = Math.round(cx - side / 2);
+      let sy = Math.round(cy - side / 2);
+      let ss = Math.round(side);
+      // Зажимаем bbox внутри границ оригинала
+      if (sx < 0) { ss += sx; sx = 0; }
+      if (sy < 0) { ss += sy; sy = 0; }
+      if (sx + ss > img.width)  ss = img.width  - sx;
+      if (sy + ss > img.height) ss = img.height - sy;
+
+      // ─── 2) Рисуем заполнение всего квадрата 1024×1024 с малым паддингом ───
       const out = document.createElement('canvas');
       out.width = SIZE; out.height = SIZE;
       const ctx = out.getContext('2d');
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
 
-      const safe  = SIZE * SAFE;
-      const scale = Math.min(safe / bbox.w, safe / bbox.h);
-      const dw    = bbox.w * scale;
-      const dh    = bbox.h * scale;
-      const dx    = (SIZE - dw) / 2;
-      const dy    = (SIZE - dh) / 2;
-      ctx.drawImage(img, bbox.x, bbox.y, bbox.w, bbox.h, dx, dy, dw, dh);
+      // Заливаем фоном (как в оригинале), чтобы переход bbox→полный квадрат
+      // не дал контрастной рамки на краях, если контент в bbox не доходит до краёв.
+      if (bgColor) {
+        ctx.fillStyle = bgColor;
+        ctx.fillRect(0, 0, SIZE, SIZE);
+      }
 
-      // ─── 3) Круговая альфа-маска ───
-      ctx.globalCompositeOperation = 'destination-in';
-      ctx.beginPath();
-      ctx.arc(SIZE / 2, SIZE / 2, SIZE / 2, 0, Math.PI * 2);
-      ctx.closePath();
-      ctx.fill();
-      ctx.globalCompositeOperation = 'source-over';
+      const target = Math.round(SIZE * (1 - PAD * 2));
+      const off    = Math.round((SIZE - target) / 2);
+      ctx.drawImage(img, sx, sy, ss, ss, off, off, target, target);
 
       const dataUrl = out.toDataURL('image/png');
       resolve({ b64: dataUrl.split(',')[1] || '', mime: 'image/png' });
