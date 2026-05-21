@@ -4357,15 +4357,20 @@ function _padLogoToCircleSafeZone(b64, mime) {
 
         // ─── Flood-fill от краёв ───
         // Помечаем пиксели, достижимые от кромки кадра по «похожему» цвету.
-        // Только их альфу опускаем. Так светлые участки внутри логотипа
-        // (например белая середина флакона) не вырежутся.
+        // Только их альфу опускаем. Tight TOL — иначе пастельные градиенты
+        // в логотипе перетекают в фон и заливка съедает весь рисунок.
+        // Safety-check: если фон занимает > FAIL_FRAC от кадра — считаем, что
+        // мы «прошли сквозь логотип», и откатываем (логотип цельный, без явного
+        // отделимого фона — оставляем как есть, прозрачным будет только паддинг).
         if (!bgTransparent) {
-          const TOL  = 22;           // допуск похожести цвета (на канал, по max)
+          const TOL       = 8;
+          const FAIL_FRAC = 0.85;
           const N    = W * H;
           const seen = new Uint8Array(N);
-          // Простой стек на типизированном массиве
           const stack = new Int32Array(N);
           let sp = 0;
+          let cleared = 0;
+          const limit = Math.floor(N * FAIL_FRAC);
 
           const pushSeed = (x, y) => {
             const i4 = (y * W + x) * 4;
@@ -4380,12 +4385,12 @@ function _padLogoToCircleSafeZone(b64, mime) {
           for (let x = 0; x < W; x++) { pushSeed(x, 0); pushSeed(x, H - 1); }
           for (let y = 0; y < H; y++) { pushSeed(0, y); pushSeed(W - 1, y); }
 
+          let bail = false;
           while (sp > 0) {
             const idx = stack[--sp];
             const x = idx % W, y = (idx - x) / W;
-            // Помечаем альфу 0
-            data[idx * 4 + 3] = 0;
-            // 4 соседа
+            cleared++;
+            if (cleared > limit) { bail = true; break; }
             const tryN = (nx, ny) => {
               if (nx < 0 || ny < 0 || nx >= W || ny >= H) return;
               const ni = ny * W + nx;
@@ -4402,7 +4407,14 @@ function _padLogoToCircleSafeZone(b64, mime) {
             tryN(x + 1, y); tryN(x - 1, y); tryN(x, y + 1); tryN(x, y - 1);
           }
 
-          sctx.putImageData(imgData, 0, 0);
+          if (!bail) {
+            // Применяем прозрачность только если flood-fill адекватный
+            for (let i = 0; i < N; i++) {
+              if (seen[i]) data[i * 4 + 3] = 0;
+            }
+            sctx.putImageData(imgData, 0, 0);
+          }
+          // если bail — не трогаем src вообще, оставляем как пришло от Gemini
         }
 
         // ─── bbox по оставшимся непрозрачным пикселям ───
