@@ -4321,34 +4321,99 @@ function _cropToBannerRatio(b64, mime) {
   });
 }
 
-// Постобработка логотипа: маркетплейс рендерит аватарку магазина в круге,
-// поэтому контент должен помещаться во вписанную окружность. Масштабируем
-// исходный квадрат 1024×1024 до ~84% и кладём на прозрачный фон, после чего
-// применяем круговую альфа-маску — углы становятся прозрачными, файл остаётся
-// квадратным PNG для маркетплейса.
+// Постобработка логотипа: маркетплейс рендерит аватарку магазина в круге.
+// Gemini часто возвращает квадрат 1024×1024 с большим белым/однотонным
+// полем вокруг самого логотипа — после круговой маски контент выглядит
+// «скукоженным» в центре. Поэтому сначала находим bbox реального контента
+// (отсекаем фон-кайму), заполняем им safe-zone (88% круга), и только затем
+// накладываем круговую альфа-маску. Финальный PNG — 1024×1024, прозрачные углы.
 function _padLogoToCircleSafeZone(b64, mime) {
   const SIZE = 1024;
-  const SAFE = 0.88; // диаметр safe-zone относительно стороны
+  const SAFE = 0.88;
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
-      const c = document.createElement('canvas');
-      c.width = SIZE; c.height = SIZE;
-      const ctx = c.getContext('2d');
+      // ─── 1) Загружаем оригинал на временный канвас, ищем bbox контента ───
+      const src = document.createElement('canvas');
+      src.width = img.width; src.height = img.height;
+      const sctx = src.getContext('2d');
+      sctx.drawImage(img, 0, 0);
+
+      let bbox;
+      try {
+        const data = sctx.getImageData(0, 0, src.width, src.height).data;
+        // Определяем «цвет фона» по углам и считаем bbox пикселей, отличных
+        // от него (и непрозрачных). Допуск — 18 на канал. Это работает и для
+        // белого фона, и для прозрачного, и для однотонного.
+        const corners = [
+          [0, 0],
+          [src.width - 1, 0],
+          [0, src.height - 1],
+          [src.width - 1, src.height - 1],
+        ];
+        let br = 0, bg = 0, bb = 0, ba = 0;
+        for (const [x, y] of corners) {
+          const i = (y * src.width + x) * 4;
+          br += data[i]; bg += data[i + 1]; bb += data[i + 2]; ba += data[i + 3];
+        }
+        br = br >> 2; bg = bg >> 2; bb = bb >> 2; ba = ba >> 2;
+        const TOL = 18;
+        const bgTransparent = ba < 8;
+
+        let minX = src.width, minY = src.height, maxX = -1, maxY = -1;
+        for (let y = 0; y < src.height; y++) {
+          for (let x = 0; x < src.width; x++) {
+            const i = (y * src.width + x) * 4;
+            const a = data[i + 3];
+            if (bgTransparent) {
+              if (a < 8) continue;
+            } else {
+              if (a < 8) continue;
+              const dr = Math.abs(data[i]     - br);
+              const dg = Math.abs(data[i + 1] - bg);
+              const db = Math.abs(data[i + 2] - bb);
+              if (dr <= TOL && dg <= TOL && db <= TOL) continue;
+            }
+            if (x < minX) minX = x;
+            if (y < minY) minY = y;
+            if (x > maxX) maxX = x;
+            if (y > maxY) maxY = y;
+          }
+        }
+        if (maxX >= 0 && maxY >= 0 && maxX > minX && maxY > minY) {
+          bbox = { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
+        }
+      } catch (e) {
+        // canvas tainted или иная ошибка — fallback на весь кадр
+        bbox = null;
+      }
+
+      if (!bbox) bbox = { x: 0, y: 0, w: img.width, h: img.height };
+
+      // ─── 2) Скейлим bbox так, чтобы он вписался в safe-zone (88% круга) ───
+      const out = document.createElement('canvas');
+      out.width = SIZE; out.height = SIZE;
+      const ctx = out.getContext('2d');
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
-      // 1) Уменьшенный логотип по центру на прозрачном фоне
-      const inner = Math.round(SIZE * SAFE);
-      const off = Math.round((SIZE - inner) / 2);
-      ctx.drawImage(img, 0, 0, img.width, img.height, off, off, inner, inner);
-      // 2) Круговая маска: всё, что вне круга радиуса SIZE/2, делаем прозрачным
+
+      const safe  = SIZE * SAFE;
+      const scale = Math.min(safe / bbox.w, safe / bbox.h);
+      const dw    = bbox.w * scale;
+      const dh    = bbox.h * scale;
+      const dx    = (SIZE - dw) / 2;
+      const dy    = (SIZE - dh) / 2;
+      ctx.drawImage(img, bbox.x, bbox.y, bbox.w, bbox.h, dx, dy, dw, dh);
+
+      // ─── 3) Круговая альфа-маска ───
       ctx.globalCompositeOperation = 'destination-in';
       ctx.beginPath();
       ctx.arc(SIZE / 2, SIZE / 2, SIZE / 2, 0, Math.PI * 2);
       ctx.closePath();
       ctx.fill();
       ctx.globalCompositeOperation = 'source-over';
-      const dataUrl = c.toDataURL('image/png');
+
+      const dataUrl = out.toDataURL('image/png');
       resolve({ b64: dataUrl.split(',')[1] || '', mime: 'image/png' });
     };
     img.onerror = () => resolve(null);
