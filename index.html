@@ -4867,52 +4867,60 @@ async function downloadTwoViews() {
   }
 }
 
-// ─── БЕЙДЖ «ОРИГИНАЛ · ПРОВЕРЕНО EL DUKENI» (верхний правый угол) ───
-// Двухстрочный: «Оригинал» крупно сверху, «Проверено EL Dukeni» помельче снизу.
-// Фон — небесно-голубой, текст — жёлтый.
+// ─── БЕЙДЖ «ОРИГИНАЛ · ПОДЛИННОСТЬ ПОДТВЕРЖДЕНА EL DUKENI» ───
+// Светло-голубая стеклянная плашка с синим кружком-галочкой, разделителем,
+// тёмно-синим заголовком, серой подписью и казахским орнаментом справа.
 function drawVerifiedBadge(ctx, w, h) {
-  const BG_COLOR    = '#4FC3F7'; // небесно-голубой
-  const BG_DARK     = '#29B6F6'; // нижний край градиента для глубины
-  const TEXT_COLOR  = '#FFEB3B'; // жёлтый
-  const CHECK_RING  = '#ffffff';
-  const CHECK_MARK  = '#29B6F6';
+  const BG_TOP    = '#F4F9FE';
+  const BG_BOTTOM = '#E3F0FB';
+  const BORDER    = 'rgba(120,170,220,0.45)';
+  const TITLE     = '#0F2549';
+  const SUBTITLE  = '#5A6B7E';
+  const RING      = '#2196F3';
+  const CIRCLE_BG = '#FFFFFF';
+  const CHECK     = '#2196F3';
+  const DIVIDER   = 'rgba(15,37,73,0.18)';
+  const ORNAMENT  = 'rgba(212,168,83,0.55)';
 
-  const padX = Math.round(w * 0.032);
-  const padY = Math.round(w * 0.018);
-  const fontMain  = Math.max(18, Math.round(w * 0.038)); // «Оригинал»
-  const fontSub   = Math.max(11, Math.round(w * 0.022)); // «Проверено EL Dukeni»
-  const lineGap   = Math.round(fontMain * 0.18);
-  const checkSize = Math.round(fontMain * 1.45);
-  const textGap   = Math.round(fontMain * 0.4);
-  const textMain  = 'Оригинал';
-  const textSub   = 'Проверено EL Dukeni';
+  const textMain = 'Оригинал';
+  const textSub  = 'Подлинность подтверждена EL Dukeni';
+
+  // Размеры от ширины холста
+  const subFont   = Math.max(13, Math.round(w * 0.022));
+  const titleFont = Math.round(subFont * 2.15);
+  const lineGap   = Math.round(subFont * 0.35);
 
   ctx.save();
 
-  // Измерения
-  ctx.font = `700 ${fontMain}px 'Golos Text', Arial, sans-serif`;
-  const mainW = ctx.measureText(textMain).width;
-  ctx.font = `600 ${fontSub}px 'Golos Text', Arial, sans-serif`;
+  // Измеряем тексты
+  ctx.font = `500 ${subFont}px 'Golos Text', Arial, sans-serif`;
   const subW = ctx.measureText(textSub).width;
-  const textBlockW = Math.max(mainW, subW);
-  const textBlockH = fontMain + lineGap + fontSub;
+  ctx.font = `800 ${titleFont}px 'Golos Text', Arial, sans-serif`;
+  const titleW = ctx.measureText(textMain).width;
+  const textW = Math.max(subW, titleW);
 
-  const badgeH = Math.max(textBlockH, checkSize) + padY * 2;
-  const badgeW = padX * 2 + checkSize + textGap + textBlockW;
-  const radius = Math.round(badgeH * 0.28);
+  const textBlockH = titleFont + lineGap + subFont;
+  const padX  = Math.round(w * 0.022);
+  const padY  = Math.round(textBlockH * 0.32);
+  const badgeH = textBlockH + padY * 2;
+  const circleR = Math.round(badgeH * 0.36);
+  const dividerGap = Math.round(padX * 0.85);
+  const badgeW = padX + circleR * 2 + dividerGap * 2 + textW + padX;
+
   const margin = Math.round(w * 0.028);
-  const x = w - margin - badgeW;
+  const x = Math.max(margin, w - margin - badgeW); // если шире холста — прижимаем к левому краю
   const y = margin;
+  const radius = Math.round(badgeH * 0.30);
 
   // Тень
-  ctx.shadowColor   = 'rgba(0,0,0,0.22)';
-  ctx.shadowBlur    = Math.round(w * 0.014);
+  ctx.shadowColor   = 'rgba(20,50,100,0.22)';
+  ctx.shadowBlur    = Math.round(w * 0.018);
   ctx.shadowOffsetY = Math.round(w * 0.005);
 
-  // Скруглённый прямоугольник с вертикальным градиентом
+  // Скруглённая плашка с вертикальным светло-голубым градиентом
   const grad = ctx.createLinearGradient(0, y, 0, y + badgeH);
-  grad.addColorStop(0, BG_COLOR);
-  grad.addColorStop(1, BG_DARK);
+  grad.addColorStop(0, BG_TOP);
+  grad.addColorStop(1, BG_BOTTOM);
   ctx.fillStyle = grad;
   ctx.beginPath();
   ctx.moveTo(x + radius, y);
@@ -4929,47 +4937,109 @@ function drawVerifiedBadge(ctx, w, h) {
 
   ctx.shadowColor = 'transparent';
 
-  // Тонкая обводка для контура
-  ctx.strokeStyle = 'rgba(255,255,255,0.35)';
-  ctx.lineWidth = Math.max(1, Math.round(w * 0.002));
+  // Тонкая голубая обводка
+  ctx.strokeStyle = BORDER;
+  ctx.lineWidth = Math.max(1, Math.round(w * 0.0017));
   ctx.stroke();
 
-  // Белый кружок с галочкой
-  const cCx = x + padX + checkSize / 2;
-  const cCy = y + badgeH / 2;
-  ctx.fillStyle = CHECK_RING;
+  // Орнамент справа (золотые казахские завитки) — клипим к плашке
+  ctx.save();
   ctx.beginPath();
-  ctx.arc(cCx, cCy, checkSize / 2, 0, Math.PI * 2);
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + badgeW - radius, y);
+  ctx.arcTo(x + badgeW, y, x + badgeW, y + radius, radius);
+  ctx.lineTo(x + badgeW, y + badgeH - radius);
+  ctx.arcTo(x + badgeW, y + badgeH, x + badgeW - radius, y + badgeH, radius);
+  ctx.lineTo(x + radius, y + badgeH);
+  ctx.arcTo(x, y + badgeH, x, y + badgeH - radius, radius);
+  ctx.lineTo(x, y + radius);
+  ctx.arcTo(x, y, x + radius, y, radius);
+  ctx.closePath();
+  ctx.clip();
+
+  ctx.strokeStyle = ORNAMENT;
+  ctx.lineWidth = Math.max(1, Math.round(badgeH * 0.018));
+  ctx.lineCap = 'round';
+
+  const ornBaseX = x + badgeW - badgeH * 0.85;
+  for (let i = 0; i < 4; i++) {
+    const off = i * badgeH * 0.18;
+    ctx.beginPath();
+    ctx.moveTo(ornBaseX + off, y - badgeH * 0.1);
+    ctx.bezierCurveTo(
+      ornBaseX + off + badgeH * 0.35, y + badgeH * 0.28,
+      ornBaseX + off - badgeH * 0.25, y + badgeH * 0.62,
+      ornBaseX + off + badgeH * 0.45, y + badgeH * 1.1
+    );
+    ctx.stroke();
+  }
+  // Маленькие узелки на орнаменте
+  ctx.fillStyle = ORNAMENT;
+  for (let i = 0; i < 3; i++) {
+    const cx = ornBaseX + badgeH * (0.25 + i * 0.18);
+    const cy = y + badgeH * (0.25 + i * 0.22);
+    ctx.beginPath();
+    ctx.arc(cx, cy, Math.max(2, badgeH * 0.025), 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore(); // снять clip
+
+  // Кружок-галочка слева
+  const cCx = x + padX + circleR;
+  const cCy = y + badgeH / 2;
+
+  // Лёгкая тень под кружком
+  ctx.save();
+  ctx.shadowColor   = 'rgba(33,150,243,0.30)';
+  ctx.shadowBlur    = Math.round(badgeH * 0.10);
+  ctx.shadowOffsetY = Math.round(badgeH * 0.02);
+
+  // Синее кольцо
+  ctx.fillStyle = RING;
+  ctx.beginPath();
+  ctx.arc(cCx, cCy, circleR, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  // Белая внутренность
+  ctx.fillStyle = CIRCLE_BG;
+  ctx.beginPath();
+  ctx.arc(cCx, cCy, circleR * 0.80, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.strokeStyle = CHECK_MARK;
-  ctx.lineWidth = Math.max(2, checkSize * 0.16);
+  // Галочка
+  ctx.strokeStyle = CHECK;
+  ctx.lineWidth = Math.max(3, circleR * 0.22);
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   ctx.beginPath();
-  ctx.moveTo(cCx - checkSize * 0.22, cCy + checkSize * 0.02);
-  ctx.lineTo(cCx - checkSize * 0.05, cCy + checkSize * 0.20);
-  ctx.lineTo(cCx + checkSize * 0.25, cCy - checkSize * 0.18);
+  ctx.moveTo(cCx - circleR * 0.35, cCy + circleR * 0.05);
+  ctx.lineTo(cCx - circleR * 0.05, cCy + circleR * 0.34);
+  ctx.lineTo(cCx + circleR * 0.42, cCy - circleR * 0.30);
   ctx.stroke();
 
-  // Текст
-  const textX = x + padX + checkSize + textGap;
+  // Вертикальный разделитель
+  const divX = cCx + circleR + dividerGap;
+  ctx.strokeStyle = DIVIDER;
+  ctx.lineWidth = Math.max(1, Math.round(badgeH * 0.013));
+  ctx.beginPath();
+  ctx.moveTo(divX, y + badgeH * 0.20);
+  ctx.lineTo(divX, y + badgeH * 0.80);
+  ctx.stroke();
+
+  // Тексты справа от разделителя
+  const textX = divX + dividerGap;
   const blockTop = y + (badgeH - textBlockH) / 2;
 
-  // Лёгкая тёмная тень под текстом для читаемости жёлтого на голубом
-  ctx.shadowColor   = 'rgba(0,0,0,0.30)';
-  ctx.shadowBlur    = Math.max(1, Math.round(w * 0.003));
-  ctx.shadowOffsetY = Math.max(1, Math.round(w * 0.0015));
-
-  ctx.fillStyle = TEXT_COLOR;
+  ctx.fillStyle = TITLE;
+  ctx.font = `800 ${titleFont}px 'Golos Text', Arial, sans-serif`;
   ctx.textAlign = 'left';
-
-  ctx.font = `700 ${fontMain}px 'Golos Text', Arial, sans-serif`;
   ctx.textBaseline = 'top';
   ctx.fillText(textMain, textX, blockTop);
 
-  ctx.font = `600 ${fontSub}px 'Golos Text', Arial, sans-serif`;
-  ctx.fillText(textSub, textX, blockTop + fontMain + lineGap);
+  ctx.fillStyle = SUBTITLE;
+  ctx.font = `500 ${subFont}px 'Golos Text', Arial, sans-serif`;
+  ctx.fillText(textSub, textX, blockTop + titleFont + lineGap);
 
   ctx.restore();
 }
