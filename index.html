@@ -4358,13 +4358,16 @@ function _padLogoToCircleSafeZone(b64, mime) {
         // ─── Flood-fill от краёв ───
         // Помечаем пиксели, достижимые от кромки кадра по «похожему» цвету.
         // Только их альфу опускаем. Tight TOL — иначе пастельные градиенты
-        // в логотипе перетекают в фон и заливка съедает весь рисунок.
-        // Safety-check: если фон занимает > FAIL_FRAC от кадра — считаем, что
-        // мы «прошли сквозь логотип», и откатываем (логотип цельный, без явного
-        // отделимого фона — оставляем как есть, прозрачным будет только паддинг).
+        // перетекают в фон и заливка съедает весь рисунок.
+        //
+        // Двухступенчатый safety-check (любой → откат, оставляем оригинал):
+        //   1. cleared > 80% всех пикселей → flood-fill съел почти весь кадр
+        //   2. flood-fill добрался до центральной зоны (логотипы центрированы,
+        //      центр = контент). Это ловит «утечки сквозь тонкие границы», даже
+        //      если по объёму очищено меньше 80%.
         if (!bgTransparent) {
           const TOL       = 8;
-          const FAIL_FRAC = 0.85;
+          const FAIL_FRAC = 0.80;
           const N    = W * H;
           const seen = new Uint8Array(N);
           const stack = new Int32Array(N);
@@ -4372,12 +4375,15 @@ function _padLogoToCircleSafeZone(b64, mime) {
           let cleared = 0;
           const limit = Math.floor(N * FAIL_FRAC);
 
-          const pushSeed = (x, y) => {
-            const i4 = (y * W + x) * 4;
+          const colorMatch = (i4) => {
             const dr = Math.abs(data[i4]     - br);
             const dg = Math.abs(data[i4 + 1] - bg);
             const db = Math.abs(data[i4 + 2] - bb);
-            if (Math.max(dr, dg, db) <= TOL) {
+            return Math.max(dr, dg, db) <= TOL;
+          };
+          const pushSeed = (x, y) => {
+            const i4 = (y * W + x) * 4;
+            if (colorMatch(i4)) {
               const idx = y * W + x;
               if (!seen[idx]) { seen[idx] = 1; stack[sp++] = idx; }
             }
@@ -4395,26 +4401,41 @@ function _padLogoToCircleSafeZone(b64, mime) {
               if (nx < 0 || ny < 0 || nx >= W || ny >= H) return;
               const ni = ny * W + nx;
               if (seen[ni]) return;
-              const i4 = ni * 4;
-              const dr = Math.abs(data[i4]     - br);
-              const dg = Math.abs(data[i4 + 1] - bg);
-              const db = Math.abs(data[i4 + 2] - bb);
-              if (Math.max(dr, dg, db) <= TOL) {
-                seen[ni] = 1;
-                stack[sp++] = ni;
-              }
+              if (colorMatch(ni * 4)) { seen[ni] = 1; stack[sp++] = ni; }
             };
             tryN(x + 1, y); tryN(x - 1, y); tryN(x, y + 1); tryN(x, y - 1);
           }
 
+          // ─── Safety #2: центр-чек ───
+          // Логотипы центрированы — если flood-fill хоть как-то заметно проник
+          // в центральную зону (радиус ~18% от стороны, 9 проб), это утечка.
           if (!bail) {
-            // Применяем прозрачность только если flood-fill адекватный
+            const cxi = W >> 1, cyi = H >> 1;
+            const R   = Math.round(W * 0.18);
+            const r7  = Math.round(R * 0.707);
+            const probes = [
+              [cxi, cyi],
+              [cxi + R, cyi], [cxi - R, cyi],
+              [cxi, cyi + R], [cxi, cyi - R],
+              [cxi + r7, cyi + r7], [cxi - r7, cyi - r7],
+              [cxi + r7, cyi - r7], [cxi - r7, cyi + r7],
+            ];
+            let centerLeaked = 0;
+            for (const [px, py] of probes) {
+              if (px >= 0 && py >= 0 && px < W && py < H) {
+                if (seen[py * W + px]) centerLeaked++;
+              }
+            }
+            if (centerLeaked >= 3) bail = true;
+          }
+
+          if (!bail) {
             for (let i = 0; i < N; i++) {
               if (seen[i]) data[i * 4 + 3] = 0;
             }
             sctx.putImageData(imgData, 0, 0);
           }
-          // если bail — не трогаем src вообще, оставляем как пришло от Gemini
+          // bail → оригинал не трогаем; логотип сохранит свой фон, шахмат не будет
         }
 
         // ─── bbox по оставшимся непрозрачным пикселям ───
