@@ -545,6 +545,11 @@
         <div style="font-size:11px;color:var(--text3);margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:1px">Стиль фона</div>
         <select id="cardBgSelect" onchange="setCardBg(this.value)" class="bg-select"></select>
       </div>
+      <label style="display:flex;align-items:center;gap:8px;margin-top:10px;padding:8px 12px;background:var(--dark3);border:1px solid var(--border);border-radius:9px;cursor:pointer;font-size:12px;color:var(--text2)">
+        <input type="checkbox" id="cardVerified" onchange="cardVerified=this.checked" style="accent-color:var(--green);width:16px;height:16px">
+        <span>✓ Оригинал El Dukeni</span>
+        <span style="margin-left:auto;font-size:10px;color:var(--text3)">бейдж на карточке</span>
+      </label>
       <button class="btn-primary" id="cardGenBtn" onclick="generateCard()" disabled style="width:100%;margin-top:12px;justify-content:center">
         🖼 Сгенерировать карточку
       </button>
@@ -630,6 +635,12 @@
           <select id="batchBgSelect" onchange="setBatchBg(this.value)" class="bg-select" style="flex:1"></select>
         </div>
       </div>
+
+      <label style="display:flex;align-items:center;gap:8px;margin:0 16px 10px;padding:8px 12px;background:var(--dark3);border:1px solid var(--border);border-radius:9px;cursor:pointer;font-size:12px;color:var(--text2)">
+        <input type="checkbox" id="batchVerified" onchange="batchVerified=this.checked" style="accent-color:var(--green);width:16px;height:16px">
+        <span>✓ Оригинал El Dukeni</span>
+        <span style="margin-left:auto;font-size:10px;color:var(--text3)">бейдж на всех карточках</span>
+      </label>
 
       <!-- Прогресс -->
       <div class="batch-progress-wrap" id="batchProgressWrap" style="display:none">
@@ -753,6 +764,11 @@
           <select id="twoBgSelect" onchange="setTwoBg(this.value)" class="bg-select" style="flex:1"></select>
         </div>
       </div>
+      <label style="display:flex;align-items:center;gap:8px;margin-top:10px;padding:8px 12px;background:var(--dark3);border:1px solid var(--border);border-radius:9px;cursor:pointer;font-size:12px;color:var(--text2)">
+        <input type="checkbox" id="twoVerified" onchange="twoVerified=this.checked" style="accent-color:var(--green);width:16px;height:16px">
+        <span>✓ Оригинал El Dukeni</span>
+        <span style="margin-left:auto;font-size:10px;color:var(--text3)">бейдж на обоих ракурсах</span>
+      </label>
       <button class="btn-primary" id="twoGenBtn" onclick="generateTwoViews()" disabled style="width:100%;margin-top:12px;justify-content:center">
         ✨ Сгенерировать 2 ракурса
       </button>
@@ -1670,6 +1686,10 @@ const BG_PRESETS = [
 let cardBg  = 'white';
 let twoBg   = 'white';
 let batchBg = 'white';
+
+let cardVerified  = false;
+let twoVerified   = false;
+let batchVerified = false;
 
 function _fillBgSelect(id, currentVal) {
   const sel = document.getElementById(id);
@@ -3771,6 +3791,7 @@ function splitBatchImage(base64, mime) {
         const ctx = c.getContext('2d');
         drawElDukeniBackground(ctx, W, H);
         ctx.drawImage(img, cx*srcW + cropOx, cy*srcH + cropOy, cropW, cropH, 0, 0, W, H);
+        if (batchVerified) drawVerifiedBadge(ctx, W, H);
         results.push(c.toDataURL('image/png'));
       });
       res(results);
@@ -4174,6 +4195,7 @@ function applyCardCanvas(base64, mime) {
       const cropOx = (img.width - cropW) / 2, cropOy = (img.height - cropH) / 2;
       drawElDukeniBackground(ctx, W, H);
       ctx.drawImage(img, cropOx, cropOy, cropW, cropH, 0, 0, W, H);
+      if (cardVerified) drawVerifiedBadge(ctx, W, H);
       res(c.toDataURL('image/png'));
     };
     img.onerror = () => res('');
@@ -4845,6 +4867,70 @@ async function downloadTwoViews() {
   }
 }
 
+// ─── БЕЙДЖ «✓ ПРОВЕРЕНО EL DUKENI» (верхний правый угол) ───
+function drawVerifiedBadge(ctx, w, h) {
+  const padX = Math.round(w * 0.035);
+  const padY = Math.round(w * 0.018);
+  const fontSize = Math.max(14, Math.round(w * 0.028));
+  const checkSize = Math.round(fontSize * 1.15);
+  const text = 'Проверено El Dukeni';
+  const gap = Math.round(fontSize * 0.45);
+
+  ctx.save();
+  ctx.font = `600 ${fontSize}px 'Golos Text', Arial, sans-serif`;
+  const textW = ctx.measureText(text).width;
+  const badgeW = padX * 2 + checkSize + gap + textW;
+  const badgeH = fontSize + padY * 2;
+  const radius = badgeH / 2;
+  const margin = Math.round(w * 0.028);
+  const x = w - margin - badgeW;
+  const y = margin;
+
+  ctx.shadowColor = 'rgba(0,0,0,0.18)';
+  ctx.shadowBlur = Math.round(w * 0.012);
+  ctx.shadowOffsetY = Math.round(w * 0.004);
+
+  ctx.fillStyle = '#00C27C';
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + badgeW - radius, y);
+  ctx.arcTo(x + badgeW, y, x + badgeW, y + radius, radius);
+  ctx.lineTo(x + badgeW, y + badgeH - radius);
+  ctx.arcTo(x + badgeW, y + badgeH, x + badgeW - radius, y + badgeH, radius);
+  ctx.lineTo(x + radius, y + badgeH);
+  ctx.arcTo(x, y + badgeH, x, y + badgeH - radius, radius);
+  ctx.lineTo(x, y + radius);
+  ctx.arcTo(x, y, x + radius, y, radius);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.shadowColor = 'transparent';
+
+  const cCx = x + padX + checkSize / 2;
+  const cCy = y + badgeH / 2;
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(cCx, cCy, checkSize / 2, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = '#00C27C';
+  ctx.lineWidth = Math.max(2, checkSize * 0.16);
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(cCx - checkSize * 0.22, cCy + checkSize * 0.02);
+  ctx.lineTo(cCx - checkSize * 0.05, cCy + checkSize * 0.20);
+  ctx.lineTo(cCx + checkSize * 0.25, cCy - checkSize * 0.18);
+  ctx.stroke();
+
+  ctx.fillStyle = '#ffffff';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, x + padX + checkSize + gap, y + badgeH / 2 + 1);
+
+  ctx.restore();
+}
+
 // ─── ФИРМЕННЫЙ ФОН EL DUKENI (белый с паттерном ромбов) ───
 function drawElDukeniBackground(ctx, w, h) {
   // 1. Белая подложка
@@ -4927,6 +5013,7 @@ function splitOnePairToCards(base64, mime) {
         const ctx = canvas.getContext('2d');
         drawElDukeniBackground(ctx, W, H);
         ctx.drawImage(img, cropOx, cy * srcH + cropOy, cropW, cropH, 0, 0, W, H);
+        if (twoVerified) drawVerifiedBadge(ctx, W, H);
         results.push(canvas.toDataURL('image/png'));
       });
       res(results);
