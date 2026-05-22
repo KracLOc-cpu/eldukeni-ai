@@ -4867,30 +4867,53 @@ async function downloadTwoViews() {
   }
 }
 
-// ─── БЕЙДЖ «✓ ПРОВЕРЕНО EL DUKENI» (верхний правый угол) ───
+// ─── БЕЙДЖ «ОРИГИНАЛ · ПРОВЕРЕНО EL DUKENI» (верхний правый угол) ───
+// Двухстрочный: «Оригинал» крупно сверху, «Проверено EL Dukeni» помельче снизу.
+// Фон — небесно-голубой, текст — жёлтый.
 function drawVerifiedBadge(ctx, w, h) {
-  const padX = Math.round(w * 0.035);
+  const BG_COLOR    = '#4FC3F7'; // небесно-голубой
+  const BG_DARK     = '#29B6F6'; // нижний край градиента для глубины
+  const TEXT_COLOR  = '#FFEB3B'; // жёлтый
+  const CHECK_RING  = '#ffffff';
+  const CHECK_MARK  = '#29B6F6';
+
+  const padX = Math.round(w * 0.032);
   const padY = Math.round(w * 0.018);
-  const fontSize = Math.max(14, Math.round(w * 0.028));
-  const checkSize = Math.round(fontSize * 1.15);
-  const text = 'Проверено El Dukeni';
-  const gap = Math.round(fontSize * 0.45);
+  const fontMain  = Math.max(18, Math.round(w * 0.038)); // «Оригинал»
+  const fontSub   = Math.max(11, Math.round(w * 0.022)); // «Проверено EL Dukeni»
+  const lineGap   = Math.round(fontMain * 0.18);
+  const checkSize = Math.round(fontMain * 1.45);
+  const textGap   = Math.round(fontMain * 0.4);
+  const textMain  = 'Оригинал';
+  const textSub   = 'Проверено EL Dukeni';
 
   ctx.save();
-  ctx.font = `600 ${fontSize}px 'Golos Text', Arial, sans-serif`;
-  const textW = ctx.measureText(text).width;
-  const badgeW = padX * 2 + checkSize + gap + textW;
-  const badgeH = fontSize + padY * 2;
-  const radius = badgeH / 2;
+
+  // Измерения
+  ctx.font = `700 ${fontMain}px 'Golos Text', Arial, sans-serif`;
+  const mainW = ctx.measureText(textMain).width;
+  ctx.font = `600 ${fontSub}px 'Golos Text', Arial, sans-serif`;
+  const subW = ctx.measureText(textSub).width;
+  const textBlockW = Math.max(mainW, subW);
+  const textBlockH = fontMain + lineGap + fontSub;
+
+  const badgeH = Math.max(textBlockH, checkSize) + padY * 2;
+  const badgeW = padX * 2 + checkSize + textGap + textBlockW;
+  const radius = Math.round(badgeH * 0.28);
   const margin = Math.round(w * 0.028);
   const x = w - margin - badgeW;
   const y = margin;
 
-  ctx.shadowColor = 'rgba(0,0,0,0.18)';
-  ctx.shadowBlur = Math.round(w * 0.012);
-  ctx.shadowOffsetY = Math.round(w * 0.004);
+  // Тень
+  ctx.shadowColor   = 'rgba(0,0,0,0.22)';
+  ctx.shadowBlur    = Math.round(w * 0.014);
+  ctx.shadowOffsetY = Math.round(w * 0.005);
 
-  ctx.fillStyle = '#00C27C';
+  // Скруглённый прямоугольник с вертикальным градиентом
+  const grad = ctx.createLinearGradient(0, y, 0, y + badgeH);
+  grad.addColorStop(0, BG_COLOR);
+  grad.addColorStop(1, BG_DARK);
+  ctx.fillStyle = grad;
   ctx.beginPath();
   ctx.moveTo(x + radius, y);
   ctx.lineTo(x + badgeW - radius, y);
@@ -4906,14 +4929,20 @@ function drawVerifiedBadge(ctx, w, h) {
 
   ctx.shadowColor = 'transparent';
 
+  // Тонкая обводка для контура
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+  ctx.lineWidth = Math.max(1, Math.round(w * 0.002));
+  ctx.stroke();
+
+  // Белый кружок с галочкой
   const cCx = x + padX + checkSize / 2;
   const cCy = y + badgeH / 2;
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = CHECK_RING;
   ctx.beginPath();
   ctx.arc(cCx, cCy, checkSize / 2, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.strokeStyle = '#00C27C';
+  ctx.strokeStyle = CHECK_MARK;
   ctx.lineWidth = Math.max(2, checkSize * 0.16);
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
@@ -4923,10 +4952,24 @@ function drawVerifiedBadge(ctx, w, h) {
   ctx.lineTo(cCx + checkSize * 0.25, cCy - checkSize * 0.18);
   ctx.stroke();
 
-  ctx.fillStyle = '#ffffff';
+  // Текст
+  const textX = x + padX + checkSize + textGap;
+  const blockTop = y + (badgeH - textBlockH) / 2;
+
+  // Лёгкая тёмная тень под текстом для читаемости жёлтого на голубом
+  ctx.shadowColor   = 'rgba(0,0,0,0.30)';
+  ctx.shadowBlur    = Math.max(1, Math.round(w * 0.003));
+  ctx.shadowOffsetY = Math.max(1, Math.round(w * 0.0015));
+
+  ctx.fillStyle = TEXT_COLOR;
   ctx.textAlign = 'left';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(text, x + padX + checkSize + gap, y + badgeH / 2 + 1);
+
+  ctx.font = `700 ${fontMain}px 'Golos Text', Arial, sans-serif`;
+  ctx.textBaseline = 'top';
+  ctx.fillText(textMain, textX, blockTop);
+
+  ctx.font = `600 ${fontSub}px 'Golos Text', Arial, sans-serif`;
+  ctx.fillText(textSub, textX, blockTop + fontMain + lineGap);
 
   ctx.restore();
 }
