@@ -476,9 +476,11 @@
 <header class="header">
   <div class="logo">El Dukeni <span>— Генератор карточек</span></div>
   <div class="tabs">
+    <button class="tab-btn" onclick="switchTab('card')">🖼 Карточка</button>
     <button class="tab-btn active" onclick="switchTab('batch')" style="background:linear-gradient(135deg,#00C27C,#009960);color:#fff;border-color:transparent">📦 Пакет×50</button>
     <button class="tab-btn" onclick="switchTab('twoviews')">✨ 2 ракурса</button>
     <button class="tab-btn" id="bannerTabBtn" onclick="switchTab('banner')" style="display:none">🎨 Оформление</button>
+    <button class="tab-btn" onclick="switchTab('search')">🔍 Поиск фото</button>
     <button class="tab-btn" id="adminTabBtn" onclick="switchTab('admin')" style="display:none;background:linear-gradient(135deg,#8B5CF6,#6D28D9);color:#fff;border-color:transparent">👑 Админ</button>
     <button class="tab-btn" onclick="switchTab('sellers')">🏪 Из БД</button>
   </div>
@@ -523,6 +525,91 @@
       onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">Выйти</button>
   </div>
 </header>
+
+<!-- ═══ КАРТОЧКА (одно фото) ═══ -->
+<div class="tab-panel" id="tab-card">
+  <div class="views-layout">
+    <div>
+      <div class="views-upload-zone" id="cardUploadZone" onclick="document.getElementById('cardFileInput').click()">
+        <div style="font-size:36px;margin-bottom:10px">📸</div>
+        <div style="font-size:14px;font-weight:600;margin-bottom:6px">Загрузите фото товара</div>
+        <div style="font-size:12px;color:var(--text2)">Перетащите или <span style="color:var(--green)">нажмите для выбора</span></div>
+        <input type="file" id="cardFileInput" accept="image/*" style="display:none" onchange="handleCardFile(this.files[0])">
+      </div>
+      <div class="views-preview" id="cardPreview">Предпросмотр</div>
+      <div style="margin-top:12px">
+        <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px">Название товара (необязательно)</div>
+        <input class="hint-input" type="text" id="cardProductName" placeholder="Например: Наушники Bloody G575...">
+      </div>
+      <div style="margin-top:8px">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:1px">Стиль фона</div>
+        <select id="cardBgSelect" onchange="setCardBg(this.value)" class="bg-select"></select>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;margin-top:10px;padding:8px 12px;background:var(--dark3);border:1px solid var(--border);border-radius:9px;cursor:pointer;font-size:12px;color:var(--text2)">
+        <input type="checkbox" id="cardVerified" onchange="cardVerified=this.checked" style="accent-color:var(--green);width:16px;height:16px">
+        <span>✓ Оригинал El Dukeni</span>
+        <span style="margin-left:auto;font-size:10px;color:var(--text3)">бейдж на карточке</span>
+      </label>
+      <button class="btn-primary" id="cardGenBtn" onclick="generateCard()" disabled style="width:100%;margin-top:12px;justify-content:center">
+        🖼 Сгенерировать карточку
+      </button>
+      <div style="margin-top:10px;background:var(--dark2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--text2)">
+        💡 Стоимость: <span style="color:var(--green);font-weight:600">~$0.039 (~35 тг)</span> за карточку
+      </div>
+    </div>
+    <div>
+      <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Результат</div>
+      <div class="views-result-box" id="cardResultBox">
+        <div id="cardLoading" class="views-loading" style="display:none">
+          <div class="spinner" style="width:36px;height:36px;border-width:3px"></div>
+          <div class="views-loading-text">Gemini генерирует карточку...<br><span style="font-size:11px;opacity:0.6">15–25 секунд</span></div>
+        </div>
+        <img id="cardResultImg" src="" style="display:none;width:100%;border-radius:8px">
+        <div id="cardEmpty" style="color:var(--text3);font-size:13px;text-align:center;padding:20px">Загрузите фото<br>и нажмите генерировать</div>
+      </div>
+      <div id="cardActions" style="display:none;gap:8px;margin-top:12px">
+        <button onclick="downloadCard()" style="flex:1;padding:10px;border:1px solid var(--border);border-radius:9px;background:var(--dark3);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px">⬇️ Карточка</button>
+        <button onclick="downloadCardOriginal()" style="flex:1;padding:10px;border:1px solid var(--green);border-radius:9px;background:transparent;color:var(--green);font-size:13px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px">⬇️ Оригинал</button>
+      </div>
+      <!-- Описание товара -->
+      <div id="card-desc-section" style="display:none;margin-top:16px;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--dark2)">
+        <div style="padding:11px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+          <div style="font-size:13px;font-weight:600">📝 Описание для маркетплейса</div>
+          <button id="card-desc-btn" onclick="generateDescription('card')" style="padding:5px 14px;background:var(--green);border:none;border-radius:8px;color:white;font-size:12px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif">Сгенерировать</button>
+        </div>
+        <div style="padding:10px 16px;border-bottom:1px solid var(--border)">
+          <input type="text" id="card-char-input" placeholder="Характеристики (необязательно): цвет, размер, материал..." style="width:100%;padding:7px 10px;background:var(--dark3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;font-family:'Golos Text',sans-serif;outline:none">
+        </div>
+        <div style="display:flex;border-bottom:1px solid var(--border)">
+          <button onclick="switchDescLang('card','ru')" id="card-lang-ru" style="flex:1;padding:8px;background:var(--dark3);border:none;border-right:1px solid var(--border);color:var(--green);font-size:12px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif">🇷🇺 Русский</button>
+          <button onclick="switchDescLang('card','kz')" id="card-lang-kz" style="flex:1;padding:8px;background:transparent;border:none;color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif">🇰🇿 Қазақша</button>
+        </div>
+        <div style="padding:14px 16px">
+          <div id="card-desc-loading" style="display:none;text-align:center;padding:16px;color:var(--text2);font-size:13px">
+            <div class="spinner" style="width:22px;height:22px;border-width:2px;margin:0 auto 8px"></div>Генерирую описание...
+          </div>
+          <div id="card-desc-empty" style="text-align:center;padding:16px;color:var(--text3);font-size:12px">Нажмите «Сгенерировать» для создания описания на RU и KZ</div>
+          <div id="card-desc-content" style="display:none">
+            <div id="card-desc-ru">
+              <div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px">Заголовок</div>
+              <div id="card-title-ru" style="font-size:13px;font-weight:600;color:var(--text);background:var(--dark3);border:1px solid var(--border);border-radius:8px;padding:9px 12px;margin-bottom:10px;line-height:1.4"></div>
+              <div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px">Описание</div>
+              <div id="card-text-ru" style="font-size:12px;color:var(--text);background:var(--dark3);border:1px solid var(--border);border-radius:8px;padding:9px 12px;line-height:1.6;white-space:pre-wrap"></div>
+              <button onclick="copyDesc('card','ru')" style="margin-top:8px;width:100%;padding:7px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif">📋 Копировать</button>
+            </div>
+            <div id="card-desc-kz" style="display:none">
+              <div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px">Тақырып</div>
+              <div id="card-title-kz" style="font-size:13px;font-weight:600;color:var(--text);background:var(--dark3);border:1px solid var(--border);border-radius:8px;padding:9px 12px;margin-bottom:10px;line-height:1.4"></div>
+              <div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px">Сипаттама</div>
+              <div id="card-text-kz" style="font-size:12px;color:var(--text);background:var(--dark3);border:1px solid var(--border);border-radius:8px;padding:9px 12px;line-height:1.6;white-space:pre-wrap"></div>
+              <button onclick="copyDesc('card','kz')" style="margin-top:8px;width:100%;padding:7px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif">📋 Көшіру</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ═══ ПАКЕТНАЯ ГЕНЕРАЦИЯ ═══ -->
 <div class="tab-panel active" id="tab-batch">
@@ -986,6 +1073,56 @@
       </div>
     </div>
 
+  </div>
+</div>
+
+<!-- ═══ ПОИСК ФОТО ═══ -->
+<div class="tab-panel" id="tab-search">
+  <div style="max-width:1000px;margin:0 auto;padding:32px 24px">
+    <div style="font-family:'Unbounded',sans-serif;font-size:20px;font-weight:700;margin-bottom:6px">🔍 Тест поиска фото</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:24px">Проверяем как SerpApi находит фото. Зелёная рамка = качество 600px+ и 50KB+</div>
+
+    <div style="background:var(--dark2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:20px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;text-align:center">
+      <div><div style="font-family:'Unbounded',sans-serif;font-size:20px;color:var(--green)" id="statFound">—</div><div style="font-size:11px;color:var(--text3);margin-top:3px">Найдено</div></div>
+      <div><div style="font-family:'Unbounded',sans-serif;font-size:20px;color:var(--yellow)" id="statQuality">—</div><div style="font-size:11px;color:var(--text3);margin-top:3px">Качественных</div></div>
+      <div><div style="font-family:'Unbounded',sans-serif;font-size:20px" id="statTime">—</div><div style="font-size:11px;color:var(--text3);margin-top:3px">Время (мс)</div></div>
+    </div>
+
+    <div style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <span style="font-size:12px;color:var(--text3)">Примеры:</span>
+      <button onclick="setExample('Nike Air Max 90 white sneakers')" style="background:var(--dark3);border:1px solid var(--border);color:var(--text2);padding:4px 12px;border-radius:20px;font-size:11px;cursor:pointer;font-family:'Golos Text',sans-serif">Nike Air Max</button>
+      <button onclick="setExample('iPhone 15 Pro product photo')" style="background:var(--dark3);border:1px solid var(--border);color:var(--text2);padding:4px 12px;border-radius:20px;font-size:11px;cursor:pointer;font-family:'Golos Text',sans-serif">iPhone 15 Pro</button>
+      <button onclick="setExample('Dove shampoo bottle')" style="background:var(--dark3);border:1px solid var(--border);color:var(--text2);padding:4px 12px;border-radius:20px;font-size:11px;cursor:pointer;font-family:'Golos Text',sans-serif">Dove шампунь</button>
+      <button onclick="setExample('Samsung TV 55 inch')" style="background:var(--dark3);border:1px solid var(--border);color:var(--text2);padding:4px 12px;border-radius:20px;font-size:11px;cursor:pointer;font-family:'Golos Text',sans-serif">Samsung TV</button>
+      <button onclick="setExample('Adidas Ultraboost running shoes')" style="background:var(--dark3);border:1px solid var(--border);color:var(--text2);padding:4px 12px;border-radius:20px;font-size:11px;cursor:pointer;font-family:'Golos Text',sans-serif">Adidas Ultraboost</button>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-bottom:28px;flex-wrap:wrap">
+      <input id="searchInput" type="text" placeholder="Nike Air Max 90 white sneakers product photo..."
+        onkeydown="if(event.key==='Enter')doSearch()"
+        style="flex:1;min-width:200px;background:var(--dark2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;font-size:14px;color:var(--text);font-family:'Golos Text',sans-serif;outline:none;transition:border-color 0.2s"
+        onfocus="this.style.borderColor='var(--green)'" onblur="this.style.borderColor='var(--border)'">
+      <button id="searchBtn" onclick="doSearch()" style="background:var(--green);color:white;border:none;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif;transition:all 0.2s">Найти</button>
+      <button onclick="document.getElementById('lensInput').click()" style="background:var(--dark2);border:1px solid var(--border);color:var(--text2);padding:12px 18px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif;transition:all 0.2s;white-space:nowrap"
+        onmouseover="this.style.borderColor='var(--green)'" onmouseout="this.style.borderColor='var(--border)'">📷 По фото</button>
+      <input id="lensInput" type="file" accept="image/*" style="display:none" onchange="doLensSearch(this)">
+    </div>
+    <div id="lensPreview" style="display:none;margin-bottom:20px;background:var(--dark2);border:1px solid var(--border);border-radius:12px;padding:12px;display:none;align-items:center;gap:12px">
+      <img id="lensPreviewImg" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--border)">
+      <div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:4px">Поиск по фото (Google Lens)</div>
+        <div id="lensPreviewName" style="font-size:11px;color:var(--text3)"></div>
+      </div>
+      <button onclick="clearLens()" style="margin-left:auto;background:transparent;border:1px solid var(--border);color:var(--text3);padding:6px 12px;border-radius:8px;font-size:11px;cursor:pointer;font-family:'Golos Text',sans-serif">✕ Очистить</button>
+    </div>
+
+    <div id="searchResults">
+      <div style="text-align:center;padding:60px 20px;color:var(--text3)">
+        <div style="font-size:48px;margin-bottom:12px">🔍</div>
+        <div style="font-size:14px;color:var(--text2);margin-bottom:6px">Введите запрос и нажмите Найти</div>
+        <div style="font-size:12px">SerpApi ищет в Google Images товары с белым фоном</div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1650,19 +1787,19 @@ function switchTab(tab) {
   }
   document.querySelectorAll('.tab-btn').forEach((b,i) => {
     b.classList.toggle('active',
-      (i===0&&tab==='batch')||(i===1&&tab==='twoviews')||(i===2&&tab==='banner')||(i===3&&tab==='admin')||(i===4&&tab==='sellers'));
-    if (i===0) {
+      (i===0&&tab==='card')||(i===1&&tab==='batch')||(i===2&&tab==='twoviews')||(i===3&&tab==='banner')||(i===4&&tab==='search')||(i===5&&tab==='admin')||(i===6&&tab==='sellers'));
+    if (i===1) {
       b.style.background = tab==='batch' ? 'linear-gradient(135deg,#00C27C,#009960)' : '';
       b.style.color = tab==='batch' ? '#fff' : '';
       b.style.borderColor = tab==='batch' ? 'transparent' : '';
     }
-    if (i===3) {
+    if (i===5) {
       b.style.background = 'linear-gradient(135deg,#8B5CF6,#6D28D9)';
       b.style.color = '#fff';
       b.style.borderColor = 'transparent';
     }
   });
-  ['batch','twoviews','banner','admin','sellers'].forEach(t => {
+  ['card','batch','twoviews','banner','search','admin','sellers'].forEach(t => {
     const el = document.getElementById(`tab-${t}`);
     if (el) el.classList.toggle('active', tab===t);
   });
@@ -1676,11 +1813,11 @@ function switchTab(tab) {
 // Вызывается после успешного ввода PIN
 function _openAdminTab() {
   document.querySelectorAll('.tab-btn').forEach((b,i) => {
-    b.classList.toggle('active', i===3);
-    if (i===0) { b.style.background=''; b.style.color=''; b.style.borderColor=''; }
-    if (i===3) { b.style.background='linear-gradient(135deg,#8B5CF6,#6D28D9)'; b.style.color='#fff'; b.style.borderColor='transparent'; }
+    b.classList.toggle('active', i===4);
+    if (i===1) { b.style.background=''; b.style.color=''; b.style.borderColor=''; }
+    if (i===4) { b.style.background='linear-gradient(135deg,#8B5CF6,#6D28D9)'; b.style.color='#fff'; b.style.borderColor='transparent'; }
   });
-  ['batch','twoviews','banner','admin','sellers'].forEach(t => {
+  ['card','batch','twoviews','search','admin'].forEach(t => {
     const el = document.getElementById(`tab-${t}`);
     if (el) el.classList.toggle('active', t==='admin');
   });
@@ -3939,12 +4076,15 @@ function copyDesc(tab, lang) {
     .catch(() => showToast('Не удалось скопировать', 'error'));
 }
 
+const cardZone = document.getElementById('cardUploadZone');
+cardZone.addEventListener('dragover', e=>{e.preventDefault();cardZone.classList.add('drag');});
+cardZone.addEventListener('dragleave', ()=>cardZone.classList.remove('drag'));
+cardZone.addEventListener('drop', e=>{e.preventDefault();cardZone.classList.remove('drag');handleCardFile(e.dataTransfer.files[0]);});
+
 const twoZone = document.getElementById('twoUploadZone');
-if (twoZone) {
-  twoZone.addEventListener('dragover', e=>{e.preventDefault();twoZone.classList.add('drag');});
-  twoZone.addEventListener('dragleave', ()=>twoZone.classList.remove('drag'));
-  twoZone.addEventListener('drop', e=>{e.preventDefault();twoZone.classList.remove('drag');handleTwoFile(e.dataTransfer.files[0]);});
-}
+twoZone.addEventListener('dragover', e=>{e.preventDefault();twoZone.classList.add('drag');});
+twoZone.addEventListener('dragleave', ()=>twoZone.classList.remove('drag'));
+twoZone.addEventListener('drop', e=>{e.preventDefault();twoZone.classList.remove('drag');handleTwoFile(e.dataTransfer.files[0]);});
 
 function handleCardFile(file) {
   if (!file || !file.type.startsWith('image/')) return;
