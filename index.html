@@ -3939,15 +3939,12 @@ function copyDesc(tab, lang) {
     .catch(() => showToast('Не удалось скопировать', 'error'));
 }
 
-const cardZone = document.getElementById('cardUploadZone');
-cardZone.addEventListener('dragover', e=>{e.preventDefault();cardZone.classList.add('drag');});
-cardZone.addEventListener('dragleave', ()=>cardZone.classList.remove('drag'));
-cardZone.addEventListener('drop', e=>{e.preventDefault();cardZone.classList.remove('drag');handleCardFile(e.dataTransfer.files[0]);});
-
 const twoZone = document.getElementById('twoUploadZone');
-twoZone.addEventListener('dragover', e=>{e.preventDefault();twoZone.classList.add('drag');});
-twoZone.addEventListener('dragleave', ()=>twoZone.classList.remove('drag'));
-twoZone.addEventListener('drop', e=>{e.preventDefault();twoZone.classList.remove('drag');handleTwoFile(e.dataTransfer.files[0]);});
+if (twoZone) {
+  twoZone.addEventListener('dragover', e=>{e.preventDefault();twoZone.classList.add('drag');});
+  twoZone.addEventListener('dragleave', ()=>twoZone.classList.remove('drag'));
+  twoZone.addEventListener('drop', e=>{e.preventDefault();twoZone.classList.remove('drag');handleTwoFile(e.dataTransfer.files[0]);});
+}
 
 function handleCardFile(file) {
   if (!file || !file.type.startsWith('image/')) return;
