@@ -415,28 +415,6 @@
 
   .empty-card { padding:30px;text-align:center;color:var(--text3);font-size:12px; }
 
-  /* ═══ PIN PAD ═══ */
-  .pin-dot {
-    width:14px;height:14px;border-radius:50%;
-    border:2px solid var(--border);background:transparent;
-    transition:all 0.15s;
-  }
-  .pin-dot.filled { background:var(--green);border-color:var(--green);transform:scale(1.15); }
-  .pin-dot.error  { background:var(--red);border-color:var(--red); }
-  .pin-btn {
-    aspect-ratio:1;border-radius:12px;border:1px solid var(--border);
-    background:var(--dark3);color:var(--text);font-size:20px;font-weight:600;
-    cursor:pointer;font-family:'Golos Text',sans-serif;
-    transition:all 0.12s;user-select:none;
-  }
-  .pin-btn:hover  { background:rgba(0,194,124,0.12);border-color:var(--green);color:var(--green); }
-  .pin-btn:active { transform:scale(0.92);background:rgba(0,194,124,0.25); }
-  @keyframes pinShake {
-    0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 60%{transform:translateX(8px)}
-  }
-  @keyframes pinSuccess {
-    0%{transform:scale(1)} 50%{transform:scale(1.08)} 100%{transform:scale(1)}
-  }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -502,8 +480,8 @@
       </button>
       <button id="qualityPro" onclick="requireProQuality()"
         style="padding:5px 12px;border:none;font-size:11px;font-weight:600;cursor:pointer;font-family:'Golos Text',sans-serif;background:transparent;color:var(--text3);transition:all 0.2s"
-        title="Требует PIN-код администратора">
-        🔒 Качественный
+        title="Качественный режим (Gemini 2.5 Pro)">
+        ✨ Качественный
       </button>
     </div>
   </div>
@@ -1126,40 +1104,6 @@
   </div>
 </div>
 
-<!-- ═══ PIN OVERLAY ═══ -->
-<div id="pinOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:800;align-items:center;justify-content:center;backdrop-filter:blur(6px)">
-  <div style="background:var(--dark2);border:1px solid var(--border);border-radius:20px;padding:36px 32px;width:340px;max-width:92vw;text-align:center">
-    <div style="font-size:36px;margin-bottom:10px">🔐</div>
-    <div style="font-family:'Unbounded',sans-serif;font-size:16px;font-weight:700;color:var(--green);margin-bottom:6px">Введите PIN-код</div>
-    <div style="font-size:12px;color:var(--text3);margin-bottom:24px">Доступ к панели администратора</div>
-    <!-- PIN dots -->
-    <div id="pinDots" style="display:flex;justify-content:center;gap:12px;margin-bottom:24px">
-      <div class="pin-dot" id="pd0"></div>
-      <div class="pin-dot" id="pd1"></div>
-      <div class="pin-dot" id="pd2"></div>
-      <div class="pin-dot" id="pd3"></div>
-    </div>
-    <!-- PIN error -->
-    <div id="pinError" style="display:none;color:var(--red);font-size:12px;margin-bottom:14px;animation:pinShake 0.3s ease">Неверный PIN-код</div>
-    <!-- Numpad -->
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:220px;margin:0 auto">
-      <button class="pin-btn" onclick="pinPress(1)">1</button>
-      <button class="pin-btn" onclick="pinPress(2)">2</button>
-      <button class="pin-btn" onclick="pinPress(3)">3</button>
-      <button class="pin-btn" onclick="pinPress(4)">4</button>
-      <button class="pin-btn" onclick="pinPress(5)">5</button>
-      <button class="pin-btn" onclick="pinPress(6)">6</button>
-      <button class="pin-btn" onclick="pinPress(7)">7</button>
-      <button class="pin-btn" onclick="pinPress(8)">8</button>
-      <button class="pin-btn" onclick="pinPress(9)">9</button>
-      <button class="pin-btn pin-btn-clear" onclick="pinClear()" style="font-size:11px;color:var(--text3)">Сброс</button>
-      <button class="pin-btn" onclick="pinPress(0)">0</button>
-      <button class="pin-btn pin-btn-del" onclick="pinDelete()">⌫</button>
-    </div>
-    <button onclick="cancelPinOverlay()" style="margin-top:18px;background:transparent;border:none;color:var(--text3);font-size:12px;cursor:pointer;font-family:'Golos Text',sans-serif">Отмена</button>
-  </div>
-</div>
-
 <div class="toast" id="toast"></div>
 
 <!-- ═══ ADMIN DASHBOARD V2 ═══ -->
@@ -1732,17 +1676,17 @@ function setQuality(q) {
   }
 }
 
-// Качественный режим — PIN спрашивается каждый раз (alwaysAsk = true)
+// Качественный режим (тогглит fast ↔ pro). Реальное cost-control — на бэке.
 function requireProQuality() {
   if (currentQuality === 'pro') {
     // Уже включён — просто выключить обратно на fast
     setQuality('fast');
     return;
   }
-  requirePin(() => {
-    setQuality('pro');
-    showToast('✨ Качественный режим включён', 'success');
-  }, true); // true = не пропускать сессию, PIN каждый раз
+  // Для админов — сразу включаем; остальные не должны видеть кнопку (см. кнопку в UI)
+  // Реальное cost-control должно быть на бэке Edge-функции через проверку роли в JWT.
+  setQuality('pro');
+  showToast('✨ Качественный режим включён', 'success');
 }
 const LENS_URL    = `${SB_URL}/functions/v1/lens-search`;
 const PROCESS_URL = `${SB_URL}/functions/v1/process-found-image`;
@@ -1773,8 +1717,7 @@ function switchTab(tab) {
       showToast('Нет доступа к админ-панели', 'error');
       return;
     }
-    // PIN-защита (пропускает если уже ввёл в этой сессии)
-    requirePin(() => _openAdminTab());
+    _openAdminTab();
     return;
   }
   // Гард доступа к разделу "Оформление" (per-user feature flag)
@@ -1810,7 +1753,7 @@ function switchTab(tab) {
   if (tab === 'sellers' && typeof sellersLoadList === 'function') sellersLoadList();
 }
 
-// Вызывается после успешного ввода PIN
+// Открывает админ-таб (проверка роли — выше, в switchTab)
 function _openAdminTab() {
   document.querySelectorAll('.tab-btn').forEach((b,i) => {
     b.classList.toggle('active', i===4);
@@ -1848,7 +1791,7 @@ async function showPagePhotos(event, pageUrl, title) {
     <div style="text-align:center;padding:40px">
       <div class="spinner" style="width:28px;height:28px;border-width:2px;margin:0 auto 12px"></div>
       <div style="font-size:13px;color:var(--text2)">Загружаю фото со страницы...</div>
-      <div style="font-size:11px;color:var(--text3);margin-top:6px">${pageUrl.slice(0,60)}...</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:6px">${_esc(pageUrl.slice(0,60))}...</div>
     </div>`;
   document.getElementById('pagePhotosModal').style.display = 'block';
   document.body.style.overflow = 'hidden';
@@ -1856,7 +1799,7 @@ async function showPagePhotos(event, pageUrl, title) {
   try {
     const r = await fetch(SCRAPE_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
+      headers: { 'Content-Type': 'application/json', 'apikey': SB_KEY, 'Authorization': `Bearer ${currentToken}` },
       body: JSON.stringify({ page_url: pageUrl })
     });
     const data = await r.json();
@@ -1865,9 +1808,9 @@ async function showPagePhotos(event, pageUrl, title) {
       document.getElementById('modalBody').innerHTML = `
         <div style="text-align:center;padding:48px 24px;color:var(--text3)">
           <div style="font-size:48px">${isBlocked ? '🛡️' : '❌'}</div>
-          <div style="margin-top:12px;color:var(--text2);font-size:14px">${isBlocked ? 'Сайт блокирует автоматический доступ' : (data.error || 'Ошибка')}</div>
+          <div style="margin-top:12px;color:var(--text2);font-size:14px">${isBlocked ? 'Сайт блокирует автоматический доступ' : _esc(data.error || 'Ошибка')}</div>
           ${isBlocked ? `<div style="font-size:12px;color:var(--text3);margin-top:8px">Amazon, Aliexpress и крупные сайты используют защиту от ботов.</div>` : ''}
-          <a href="${pageUrl}" target="_blank"
+          <a href="${_escUrl(pageUrl)}" target="_blank" rel="noopener noreferrer"
             style="display:inline-block;margin-top:16px;background:var(--green);color:white;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none">
             🔗 Открыть страницу вручную
           </a>
@@ -1880,7 +1823,7 @@ async function showPagePhotos(event, pageUrl, title) {
         <div style="text-align:center;padding:60px;color:var(--text3)">
           <div style="font-size:48px">🖼️</div>
           <div style="margin-top:12px">Фото не найдены на странице</div>
-          <a href="${pageUrl}" target="_blank" style="display:inline-block;margin-top:12px;color:var(--green);font-size:12px">Открыть страницу</a>
+          <a href="${_escUrl(pageUrl)}" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin-top:12px;color:var(--green);font-size:12px">Открыть страницу</a>
         </div>`;
       return;
     }
@@ -1888,22 +1831,21 @@ async function showPagePhotos(event, pageUrl, title) {
     document.getElementById('modalBody').innerHTML = `
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px">
         ${images.map((img, idx) => `
-          <div id="mcard-${idx}" onclick="toggleModalImage(${idx},'${img.src.replace(/'/g,"\\'")}')"
-            data-src="${img.src.replace(/"/g,'&quot;')}"
+          <div id="mcard-${idx}" data-src="${_escAttr(img.src)}" onclick="toggleModalImage(${idx}, this.dataset.src)"
             style="background:var(--dark3);border:2px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;transition:all 0.2s;position:relative"
             onmouseover="if(this.dataset.selected!=='true')this.style.transform='translateY(-2px)'"
             onmouseout="if(this.dataset.selected!=='true')this.style.transform='none'">
             <div id="mcheck-${idx}" style="display:none;position:absolute;top:5px;right:5px;background:var(--green);color:white;font-size:10px;font-weight:700;width:20px;height:20px;border-radius:50%;align-items:center;justify-content:center;z-index:2">✓</div>
-            <img src="${img.src}" style="width:100%;aspect-ratio:1;object-fit:cover;display:block" loading="lazy" onerror="this.parentElement.style.display='none'">
-            ${img.alt ? `<div style="padding:5px 7px;font-size:10px;color:var(--text3);line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${img.alt}</div>` : ''}
+            <img src="${_escAttr(img.src)}" style="width:100%;aspect-ratio:1;object-fit:cover;display:block" loading="lazy" onerror="this.parentElement.style.display='none'">
+            ${img.alt ? `<div style="padding:5px 7px;font-size:10px;color:var(--text3);line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${_esc(img.alt)}</div>` : ''}
           </div>`).join('')}
       </div>`;
   } catch(e) {
     document.getElementById('modalBody').innerHTML = `
       <div style="text-align:center;padding:60px;color:var(--text3)">
         <div style="font-size:48px">❌</div>
-        <div style="margin-top:12px;color:var(--red)">${e.message}</div>
-        <div style="font-size:11px;margin-top:8px"><a href="${pageUrl}" target="_blank" style="color:var(--green)">Открыть страницу вручную</a></div>
+        <div style="margin-top:12px;color:var(--red)">${_esc(e.message)}</div>
+        <div style="font-size:11px;margin-top:8px"><a href="${_escUrl(pageUrl)}" target="_blank" rel="noopener noreferrer" style="color:var(--green)">Открыть страницу вручную</a></div>
       </div>`;
   }
 }
@@ -1994,7 +1936,7 @@ async function doLensSearch(input) {
   try {
     const r = await fetch(LENS_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
+      headers: { 'Content-Type': 'application/json', 'apikey': SB_KEY, 'Authorization': `Bearer ${currentToken}` },
       body: JSON.stringify({ image_base64: base64, mime_type: file.type || 'image/jpeg' })
     });
     const data = await r.json();
@@ -2010,7 +1952,7 @@ async function doLensSearch(input) {
     document.getElementById('searchResults').innerHTML = `
       <div style="text-align:center;padding:60px;color:var(--text3)">
         <div style="font-size:48px">❌</div>
-        <div style="margin-top:12px">${e.message}</div>
+        <div style="margin-top:12px">${_esc(e.message)}</div>
       </div>`;
     showToast('Ошибка: ' + e.message, 'error');
   }
@@ -2065,17 +2007,17 @@ function renderSearchImages(images, quality, label) {
           style="background:var(--dark2);border:2px solid ${img.size_ok?'rgba(0,194,124,0.4)':'var(--border)'};border-radius:12px;overflow:hidden;transition:all 0.2s;position:relative;user-select:none">
           <div id="scheck-${idx}" style="position:absolute;top:6px;right:6px;background:var(--green);color:white;font-size:11px;font-weight:700;width:22px;height:22px;border-radius:50%;display:none;align-items:center;justify-content:center;z-index:2">✓</div>
           ${img.size_ok ? '<div style="position:absolute;top:6px;left:6px;background:var(--green);color:white;font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px;z-index:1">✓ OK</div>' : ''}
-          <img onclick="toggleSearchCard(${idx}, ${JSON.stringify(img).replace(/"/g,'&quot;')})" src="${img.thumbnail||img.url}" style="width:100%;aspect-ratio:1;object-fit:cover;display:block;background:var(--dark3);cursor:pointer" loading="lazy" onerror="this.style.background='#21262d'"
+          <img onclick="toggleSearchCard(${idx}, ${JSON.stringify(img).replace(/"/g,'&quot;')})" src="${_escAttr(img.thumbnail||img.url)}" style="width:100%;aspect-ratio:1;object-fit:cover;display:block;background:var(--dark3);cursor:pointer" loading="lazy" onerror="this.style.background='#21262d'"
             onmouseover="if(this.parentElement.dataset.selected!=='true')this.parentElement.style.transform='translateY(-2px)'"
             onmouseout="if(this.parentElement.dataset.selected!=='true')this.parentElement.style.transform='none'">
           <div style="padding:8px 10px">
-            <div style="font-size:11px;color:var(--text2);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${img.title||'—'}</div>
+            <div style="font-size:11px;color:var(--text2);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${_esc(img.title||'—')}</div>
             <div style="display:flex;justify-content:space-between;margin-top:5px">
-              <span style="font-size:10px;color:var(--text3)">${img.width||'?'}×${img.height||'?'}</span>
-              <span style="font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;max-width:80px;white-space:nowrap">${img.source||''}</span>
+              <span style="font-size:10px;color:var(--text3)">${Number(img.width)||'?'}×${Number(img.height)||'?'}</span>
+              <span style="font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;max-width:80px;white-space:nowrap">${_esc(img.source||'')}</span>
             </div>
-            ${img.price && typeof img.price === 'string' ? `<div style="font-size:11px;color:var(--green);margin-top:4px;font-weight:600">${img.price}</div>` : ''}
-            ${img.page_url ? `<button onclick="showPagePhotos(event,'${img.page_url.replace(/'/g,"\\'")}','${(img.title||'').replace(/'/g,"\\'")}')"
+            ${img.price && typeof img.price === 'string' ? `<div style="font-size:11px;color:var(--green);margin-top:4px;font-weight:600">${_esc(img.price)}</div>` : ''}
+            ${img.page_url ? `<button data-page-url="${_escAttr(img.page_url)}" data-page-title="${_escAttr(img.title||'')}" onclick="showPagePhotos(event, this.dataset.pageUrl, this.dataset.pageTitle)"
               style="width:100%;margin-top:6px;background:var(--dark3);border:1px solid var(--border);color:var(--text2);padding:5px 8px;border-radius:7px;font-size:10px;cursor:pointer;font-family:'Golos Text',sans-serif;transition:all 0.2s"
               onmouseover="this.style.borderColor='var(--green)';this.style.color='var(--green)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">📂 Все фото со страницы</button>` : ''}
           </div>
@@ -2138,7 +2080,7 @@ async function processSelectedImages() {
     try {
       const r = await fetch(PROCESS_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
+        headers: { 'Content-Type': 'application/json', 'apikey': SB_KEY, 'Authorization': `Bearer ${currentToken}` },
         body: JSON.stringify({ image_url: img.image_url || img.url, thumbnail_url: img.thumbnail || '', title: img.title || '', category: 'Прочее' })
       });
       const data = await r.json();
@@ -2147,24 +2089,24 @@ async function processSelectedImages() {
         done++;
         pcardEl.innerHTML = `
           <div style="position:relative">
-            <img src="${data.card_url}" style="width:100%;aspect-ratio:1;object-fit:cover;display:block" onerror="this.src='${img.thumbnail}'">
+            <img src="${_escAttr(data.card_url)}" style="width:100%;aspect-ratio:1;object-fit:cover;display:block" data-fallback="${_escAttr(img.thumbnail||'')}" onerror="this.src=this.dataset.fallback">
             <div style="position:absolute;top:6px;left:6px;background:var(--green);color:white;font-size:9px;font-weight:700;padding:2px 8px;border-radius:20px">✓ Готово</div>
           </div>
           <div style="padding:8px 10px">
-            <div style="font-size:11px;color:var(--text2);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${img.title||'—'}</div>
-            <a href="${data.card_url}" download target="_blank"
+            <div style="font-size:11px;color:var(--text2);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${_esc(img.title||'—')}</div>
+            <a href="${_escUrl(data.card_url)}" download target="_blank" rel="noopener noreferrer"
               style="display:block;margin-top:8px;text-align:center;background:var(--dark3);border:1px solid var(--border);color:var(--green);padding:6px;border-radius:8px;font-size:11px;font-weight:600;text-decoration:none;cursor:pointer">⬇️ Скачать</a>
           </div>`;
       } else {
         pcardEl.innerHTML = `
           <div style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;background:var(--dark3);flex-direction:column;gap:8px;padding:12px">
-            <img src="${img.thumbnail}" style="width:60%;aspect-ratio:1;object-fit:cover;border-radius:8px;opacity:0.5">
-            <div style="font-size:10px;color:var(--red);text-align:center">${data.error||'Ошибка'}</div>
+            <img src="${_escAttr(img.thumbnail||'')}" style="width:60%;aspect-ratio:1;object-fit:cover;border-radius:8px;opacity:0.5">
+            <div style="font-size:10px;color:var(--red);text-align:center">${_esc(data.error||'Ошибка')}</div>
           </div>`;
       }
     } catch(e) {
       const pcardEl = document.getElementById(`pcard-${i}`);
-      pcardEl.innerHTML = `<div style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--red);padding:12px;text-align:center">${e.message}</div>`;
+      pcardEl.innerHTML = `<div style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--red);padding:12px;text-align:center">${_esc(e.message)}</div>`;
     }
   }
   btn.disabled = false;
@@ -2186,7 +2128,7 @@ async function doSearch() {
   try {
     const r = await fetch(SEARCH_URL, {
       method:'POST',
-      headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`},
+      headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':`Bearer ${currentToken}`},
       body: JSON.stringify({ query })
     });
     const data = await r.json();
@@ -2202,7 +2144,7 @@ async function doSearch() {
     document.getElementById('searchResults').innerHTML = `
       <div style="text-align:center;padding:60px;color:var(--text3)">
         <div style="font-size:48px">❌</div>
-        <div style="margin-top:12px">${e.message}</div>
+        <div style="margin-top:12px">${_esc(e.message)}</div>
       </div>`;
     showToast('Ошибка: ' + e.message, 'error');
   }
@@ -2214,7 +2156,7 @@ async function loadSellers() {
   if (!document.getElementById('sellersList')) return; // вкладка Карточки удалена
   try {
     const r = await fetch(`${SB_URL}/rest/v1/sellers?order=name`, {
-      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${currentToken}` }
     });
     const data = await r.json();
     renderSellers(Array.isArray(data) ? data : []);
@@ -2307,7 +2249,7 @@ async function processOne(file, index, hint) {
     const b64 = await compress(file);
     const r = await fetch(FN_URL, {
       method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`,'apikey':SB_KEY},
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${currentToken}`,'apikey':SB_KEY},
       body: JSON.stringify({ photo_base64:b64, photo_mime:'image/jpeg', seller_id:selectedSeller.id, seller_name:selectedSeller.name, manager_hint:hint })
     });
     const data = await r.json();
@@ -2477,109 +2419,6 @@ function showToast(msg, type='success') {
 
 loadSellers();
 initAuth();
-
-// ════════════════════════════════════════
-// ═══════  PIN CODE  ══════════════════════
-// ════════════════════════════════════════
-
-const ADMIN_PIN = '9015'; // ← смени на свой PIN
-const PIN_SESSION_KEY = 'admin_pin_ok';
-let _pinBuffer = '';
-let _pinTarget = null; // callback после успешного ввода
-
-function requirePin(callback, alwaysAsk) {
-  // alwaysAsk = true → не проверяем сессию, PIN каждый раз (для качественного режима)
-  if (!alwaysAsk && sessionStorage.getItem(PIN_SESSION_KEY) === 'yes') {
-    callback();
-    return;
-  }
-  _pinTarget = callback;
-  _pinBuffer = '';
-  _updatePinDots();
-  document.getElementById('pinError').style.display = 'none';
-  const ol = document.getElementById('pinOverlay');
-  ol.style.display = 'flex';
-  // Keyboard support
-  document.addEventListener('keydown', _pinKeyHandler);
-}
-
-function closePinOverlay() {
-  document.getElementById('pinOverlay').style.display = 'none';
-  document.removeEventListener('keydown', _pinKeyHandler);
-  _pinBuffer = '';
-  // _pinTarget НЕ обнуляем — его обнуляет _checkPin уже после вызова callback
-}
-
-function cancelPinOverlay() {
-  // Отмена пользователем — сбрасываем всё
-  _pinTarget = null;
-  closePinOverlay();
-}
-
-function _pinKeyHandler(e) {
-  if (e.key >= '0' && e.key <= '9') { pinPress(parseInt(e.key)); return; }
-  if (e.key === 'Backspace') { pinDelete(); return; }
-  if (e.key === 'Escape')    { cancelPinOverlay(); return; }
-}
-
-function pinPress(digit) {
-  if (_pinBuffer.length >= 4) return;
-  _pinBuffer += String(digit);
-  _updatePinDots();
-  if (_pinBuffer.length === 4) {
-    setTimeout(_checkPin, 120); // небольшая пауза для анимации
-  }
-}
-
-function pinDelete() {
-  if (!_pinBuffer.length) return;
-  _pinBuffer = _pinBuffer.slice(0, -1);
-  _updatePinDots();
-  document.getElementById('pinError').style.display = 'none';
-}
-
-function pinClear() {
-  _pinBuffer = '';
-  _updatePinDots();
-  document.getElementById('pinError').style.display = 'none';
-}
-
-function _updatePinDots() {
-  for (let i = 0; i < 4; i++) {
-    const dot = document.getElementById('pd' + i);
-    dot.classList.toggle('filled', i < _pinBuffer.length);
-    dot.classList.remove('error');
-  }
-}
-
-function _checkPin() {
-  if (_pinBuffer === ADMIN_PIN) {
-    // Успех — запоминаем на сессию
-    sessionStorage.setItem(PIN_SESSION_KEY, 'yes');
-    // Анимация успеха
-    for (let i=0;i<4;i++) {
-      const d = document.getElementById('pd'+i);
-      d.style.animation = 'pinSuccess 0.3s ease';
-      setTimeout(()=>d.style.animation='', 300);
-    }
-    setTimeout(() => {
-      closePinOverlay();
-      if (_pinTarget) { _pinTarget(); _pinTarget = null; }
-    }, 250);
-  } else {
-    // Ошибка — тряска
-    for (let i=0;i<4;i++) document.getElementById('pd'+i).classList.add('error');
-    const err = document.getElementById('pinError');
-    err.style.display = 'block';
-    err.style.animation = 'none';
-    err.offsetHeight; // reflow
-    err.style.animation = 'pinShake 0.35s ease';
-    setTimeout(() => {
-      _pinBuffer = '';
-      _updatePinDots();
-    }, 600);
-  }
-}
 
 // ════════════════════════════════════════
 // ═══════  ADMIN DASHBOARD V2  ═══════════
@@ -3646,6 +3485,8 @@ function timeAgo(iso) {
 }
 function _shorten(s, n) { s = String(s||''); return s.length > n ? s.slice(0,n-1)+'…' : s; }
 function _esc(s) { return String(s||'').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+function _escUrl(u) { const s = String(u||''); return /^(https?:|data:image\/)/i.test(s) ? _esc(s) : '#'; }
+function _escAttr(s) { return String(s||'').replace(/['"<>&]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
 function _plural(n, one, few, many) {
   const m10 = n%10, m100 = n%100;
   if (m10===1 && m100!==11) return one;
@@ -3698,7 +3539,7 @@ function renderBatchQueue() {
       el.innerHTML = `
         <img class="batch-thumb" src="${thumbSrc}" id="bthumb-${i}">
         <div style="flex:1;min-width:0">
-          <div class="batch-item-name">${item.name}</div>
+          <div class="batch-item-name">${_esc(item.name)}</div>
           <div class="batch-item-status" id="bstatus-${i}" style="color:${statusColor}">${statusIcon} ${batchStatusText(item)}</div>
           <div class="batch-item-mini" id="bmini-${i}"></div>
         </div>`;
@@ -3823,7 +3664,7 @@ function addBatchCardToGrid(item, idx) {
       <div style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.7);color:#fff;font-size:10px;padding:2px 8px;border-radius:20px">👁 2 ракурса</div>
     </div>
     <div style="padding:8px 10px">
-      <div style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${item.name}">${item.name}</div>
+      <div style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${_escAttr(item.name)}">${_esc(item.name)}</div>
       <div style="font-size:10px;color:var(--text3);margin-top:3px">Нажмите для просмотра</div>
     </div>`;
   grid.appendChild(card);
@@ -3887,7 +3728,7 @@ async function startBatchProcessing() {
 
       const r = await fetch(VIEWS_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SB_KEY}`, 'apikey': SB_KEY },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentToken}`, 'apikey': SB_KEY },
         body: JSON.stringify({ photo_base64: b64, photo_mime: batchQueue[i].file.type, product_name: '', category, mode: 'two_views', quality: currentQuality, bg_style: batchBg === 'white' ? 'white' : 'styled', bg_preset: batchBg })
       });
       const data = await r.json();
@@ -4036,7 +3877,7 @@ async function generateDescription(tab) {
   try {
     const r = await fetch(DESC_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
+      headers: { 'Content-Type': 'application/json', 'apikey': SB_KEY, 'Authorization': `Bearer ${currentToken}` },
       body: JSON.stringify({ photo_base64: photoB64, photo_mime: photoMime, product_desc: productDesc, category, characteristics: chars })
     });
     const data = await r.json();
@@ -4130,7 +3971,7 @@ async function generateCard() {
     const category = document.getElementById('cardCategory')?.value || '';
     const r = await fetch(VIEWS_URL, {
       method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`,'apikey':SB_KEY},
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${currentToken}`,'apikey':SB_KEY},
       body: JSON.stringify({ photo_base64:b64, photo_mime:cardFile.type, product_name:name, category, mode:'single', quality: currentQuality, bg_style: cardBg === 'white' ? 'white' : 'styled', bg_preset: cardBg })
     });
     const data = await r.json();
@@ -4789,7 +4630,7 @@ async function generateTwoViews() {
     const category = document.getElementById('twoCategory')?.value || '';
     const r = await fetch(VIEWS_URL, {
       method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':`Bearer ${SB_KEY}`,'apikey':SB_KEY},
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${currentToken}`,'apikey':SB_KEY},
       body: JSON.stringify({ photo_base64:b64, photo_mime:twoFile.type, product_name:name, category, mode:'two_views', quality: currentQuality, bg_style: twoBg === 'white' ? 'white' : 'styled', bg_preset: twoBg })
     });
     const data = await r.json();
