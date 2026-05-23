@@ -4877,7 +4877,7 @@ VERIFIED_BADGE_IMG.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA+gAAAD6
 function drawVerifiedBadge(ctx, w, h) {
   if (!_verifiedBadgeReady) return; // картинка ещё грузится — пропускаем
   const aspect = VERIFIED_BADGE_IMG.naturalHeight / VERIFIED_BADGE_IMG.naturalWidth; // 0.25
-  const badgeW = Math.round(w * 0.62);
+  const badgeW = Math.round(w * 0.42);
   const badgeH = Math.round(badgeW * aspect);
   const margin = Math.round(w * 0.025);
   const x = w - margin - badgeW;
