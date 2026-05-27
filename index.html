@@ -4320,7 +4320,12 @@ function _padLogoToCircleSafeZone(b64, mime) {
         bbox = null;
       }
 
-      if (!bbox) bbox = { x: 0, y: 0, w: W, h: H };
+      // ─── Sanity: если bbox не нашёлся (Gemini вернул пустое/полностью прозрачное),
+      // не показываем шахматку — возвращаем null + флаг empty, чтобы caller выдал ошибку.
+      if (!bbox) {
+        resolve({ empty: true });
+        return;
+      }
 
       // ─── bbox → квадрат (по большей стороне), зажатый в границы ───
       const side = Math.max(bbox.w, bbox.h);
@@ -4334,16 +4339,25 @@ function _padLogoToCircleSafeZone(b64, mime) {
       if (sx + ss > W) ss = W - sx;
       if (sy + ss > H) ss = H - sy;
 
-      // ─── Финальный канвас 1024×1024 с прозрачным фоном ───
+      // ─── Финальный канвас 1024×1024 с прозрачным фоном + круглый clip-mask ───
       const out = document.createElement('canvas');
       out.width = SIZE; out.height = SIZE;
       const ctx = out.getContext('2d');
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
 
+      // Круглая маска: всё за пределами круга гарантированно прозрачно,
+      // даже если flood-fill bail-нулся и оставил квадратный фон.
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(SIZE / 2, SIZE / 2, SIZE / 2, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+
       const target = Math.round(SIZE * (1 - PAD * 2));
       const off    = Math.round((SIZE - target) / 2);
       ctx.drawImage(src, sx, sy, ss, ss, off, off, target, target);
+      ctx.restore();
 
       const dataUrl = out.toDataURL('image/png');
       resolve({ b64: dataUrl.split(',')[1] || '', mime: 'image/png' });
@@ -4402,6 +4416,11 @@ async function _generateLogoPart(slot, inputs) {
   // Маркетплейс показывает аватарку магазина круглой — приводим лого в круглую
   // safe-zone (контент 84% от стороны, углы прозрачные), чтобы ничего не резалось.
   const padded = await _padLogoToCircleSafeZone(data.image_base64, data.mime || 'image/png');
+  if (padded && padded.empty) {
+    // Gemini вернул пустое/полностью прозрачное изображение — не показываем шахматку,
+    // даём пользователю явную ошибку и кнопку Re-generate.
+    throw new Error('Модель не нарисовала логотип — попробуйте сгенерировать ещё раз');
+  }
   slot.logo_status = 'done';
   slot.logo_b64    = padded ? padded.b64  : data.image_base64;
   slot.logo_mime   = padded ? padded.mime : (data.mime || 'image/png');
