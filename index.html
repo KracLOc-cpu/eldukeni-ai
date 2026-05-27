@@ -1467,7 +1467,7 @@ const LOGO_URL  = `${SB_URL}/functions/v1/generate-logo`;
 const _supabase = window.supabase.createClient(SB_URL, SB_KEY);
 let currentUser    = null;
 let currentProfile = null;
-let currentToken   = SB_KEY; // fallback to anon key
+let currentToken   = null; // becomes session.access_token after login
 
 async function initAuth() {
   const { data: { session } } = await _supabase.auth.getSession();
@@ -1562,7 +1562,7 @@ async function doLogin() {
 
 async function doLogout() {
   await _supabase.auth.signOut();
-  currentUser = null; currentProfile = null; currentToken = SB_KEY;
+  currentUser = null; currentProfile = null; currentToken = null;
   document.getElementById('adminTabBtn').style.display = 'none';
   const bannerBtn = document.getElementById('bannerTabBtn');
   if (bannerBtn) bannerBtn.style.display = 'none';
@@ -4354,13 +4354,19 @@ function _padLogoToCircleSafeZone(b64, mime) {
 }
 
 async function _postJSON(url, body) {
+  const { data: { session } } = await _supabase.auth.getSession();
+  const token = session?.access_token;
+  if (!token) throw new Error('Сессия истекла — войдите заново');
+  currentToken = token;
   const r = await fetch(url, {
     method:  'POST',
-    headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${currentToken}`, 'apikey':SB_KEY },
+    headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${token}`, 'apikey':SB_KEY },
     body:    JSON.stringify(body),
   });
-  const data = await r.json();
-  if (!data || !data.success) throw new Error(data?.error || 'Ошибка');
+  let data = null;
+  try { data = await r.json(); } catch {}
+  if (r.status === 401) throw new Error('Не авторизован — войдите заново');
+  if (!data || !data.success) throw new Error(data?.error || `Ошибка (${r.status})`);
   return data;
 }
 
@@ -4406,6 +4412,13 @@ async function _generateLogoPart(slot, inputs) {
 async function generateStorefront() {
   const inputs = _readStorefrontInputs();
   if (!inputs.category) { showToast('Выберите категорию', 'error'); return; }
+
+  const { data: { session } } = await _supabase.auth.getSession();
+  if (!session) { showToast('Войдите в систему перед генерацией', 'error'); showLoginScreen(); return; }
+  currentToken = session.access_token;
+  if (!isAdmin() && currentProfile?.can_use_banner !== true) {
+    showToast('Нет доступа к разделу «Оформление»', 'error'); return;
+  }
 
   const n = parseInt(document.getElementById('bannerCount').value, 10) || 1;
   const btn = document.getElementById('bannerGenBtn');
