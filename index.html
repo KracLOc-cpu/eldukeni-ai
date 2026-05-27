@@ -4218,6 +4218,31 @@ function _padLogoToCircleSafeZone(b64, mime) {
         br = br >> 2; bg = bg >> 2; bb = bb >> 2; ba = ba >> 2;
         const bgTransparent = ba < 8;
 
+        // Однотонный ответ — это пустая генерация, а не логотип. Ловим и
+        // исходное непрозрачное изображение, и уже замаскированный светлый круг.
+        const CONTENT_TOL = 18;
+        const requiredPixels = Math.max(64, Math.floor(W * H * 0.001));
+        let meaningfulPixels = 0;
+        let differsFromBackground = 0;
+        for (let i = 0; i < data.length; i += 4) {
+          if (data[i + 3] < 8) continue;
+          const high = Math.max(data[i], data[i + 1], data[i + 2]);
+          const low  = Math.min(data[i], data[i + 1], data[i + 2]);
+          if (low <= 220 || high - low > 32) meaningfulPixels++;
+          if (!bgTransparent && Math.max(
+            Math.abs(data[i] - br),
+            Math.abs(data[i + 1] - bg),
+            Math.abs(data[i + 2] - bb),
+          ) > CONTENT_TOL) {
+            differsFromBackground++;
+          }
+        }
+        if (meaningfulPixels < requiredPixels ||
+            (!bgTransparent && differsFromBackground < requiredPixels)) {
+          resolve({ empty: true });
+          return;
+        }
+
         // ─── Flood-fill от краёв ───
         // Помечаем пиксели, достижимые от кромки кадра по «похожему» цвету.
         // Только их альфу опускаем. Tight TOL — иначе пастельные градиенты
@@ -4417,7 +4442,8 @@ async function _generateLogoPart(slot, inputs) {
   // safe-zone (контент 84% от стороны, углы прозрачные), чтобы ничего не резалось.
   const padded = await _padLogoToCircleSafeZone(data.image_base64, data.mime || 'image/png');
   if (padded && padded.empty) {
-    // Gemini вернул пустое/полностью прозрачное изображение — не показываем шахматку,
+    // Gemini вернул пустое, полностью прозрачное или однотонное изображение —
+    // не показываем пустой логотип,
     // даём пользователю явную ошибку и кнопку Re-generate.
     throw new Error('Модель не нарисовала логотип — попробуйте сгенерировать ещё раз');
   }
