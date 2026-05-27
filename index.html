@@ -4219,16 +4219,28 @@ function _padLogoToCircleSafeZone(b64, mime) {
         const bgTransparent = ba < 8;
 
         // Однотонный ответ — это пустая генерация, а не логотип. Ловим и
-        // исходное непрозрачное изображение, и уже замаскированный светлый круг.
+        // исходное непрозрачное изображение, и уже замаскированный пустой круг.
         const CONTENT_TOL = 18;
         const requiredPixels = Math.max(64, Math.floor(W * H * 0.001));
-        let meaningfulPixels = 0;
+        let refR = 0, refG = 0, refB = 0, hasReference = false;
+        for (let i = 0; i < data.length; i += 4) {
+          if (data[i + 3] >= 128) {
+            refR = data[i]; refG = data[i + 1]; refB = data[i + 2];
+            hasReference = true;
+            break;
+          }
+        }
+        let variedPixels = 0;
         let differsFromBackground = 0;
         for (let i = 0; i < data.length; i += 4) {
           if (data[i + 3] < 8) continue;
-          const high = Math.max(data[i], data[i + 1], data[i + 2]);
-          const low  = Math.min(data[i], data[i + 1], data[i + 2]);
-          if (low <= 220 || high - low > 32) meaningfulPixels++;
+          if (hasReference && Math.max(
+            Math.abs(data[i] - refR),
+            Math.abs(data[i + 1] - refG),
+            Math.abs(data[i + 2] - refB),
+          ) > CONTENT_TOL) {
+            variedPixels++;
+          }
           if (!bgTransparent && Math.max(
             Math.abs(data[i] - br),
             Math.abs(data[i + 1] - bg),
@@ -4237,7 +4249,7 @@ function _padLogoToCircleSafeZone(b64, mime) {
             differsFromBackground++;
           }
         }
-        if (meaningfulPixels < requiredPixels ||
+        if (!hasReference || variedPixels < requiredPixels ||
             (!bgTransparent && differsFromBackground < requiredPixels)) {
           resolve({ empty: true });
           return;
